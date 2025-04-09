@@ -184,7 +184,7 @@ func main() {
 		// Wait for all messages to be delivered
 		p.Flush(2000)
 		// Sleep
-		time.Sleep(10*time.Second)
+		time.Sleep(5*time.Second)
 	}
 	fmt.Printf("Produced %d messages", messageCount)
 }

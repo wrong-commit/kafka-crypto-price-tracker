@@ -111,17 +111,17 @@
 
         const option = {
             title: {
-            text: `${cryptoId} Stock Price`
+                text: `${cryptoId} Stock Price`
             },
             tooltip: {
-            trigger: 'axis',
-            formatter: params => {
-                const date = new Date(params[0].value[0]);
-                return `
-                Time: ${date.toLocaleString()}<br>
-                Price: $${params[0].value[1]}
-                `;
-            }
+                trigger: 'axis',
+                formatter: params => {
+                    const date = new Date(params[0].value[0]);
+                    return `
+                    Time: ${date.toLocaleString()}<br>
+                    Price: $${params[0].value[1]}
+                    `;
+                }
             },
             xAxis: {
                 type: 'time',
@@ -160,6 +160,7 @@
 <div>
     <select id="duration">
         <option value="5m">5 min</option>
+        <option value="1h">1 hour</option>
         <!-- 7 * 24  -->
         <option value="168h" selected>1 week</option>
         <!-- 30 * 24  -->

@@ -1,6 +1,6 @@
 ---
 services:
-    # Service to generate prices for BTC 
+    # Front End service for showing graph and calling API
     crypto-price-fe:
         container_name: crypto-price-fe
         image: crypto-price-fe
@@ -11,7 +11,7 @@ services:
             API_URL: "http://localhost:8082"
         ports: 
             - 8083:80
-    # Service to generate prices for BTC 
+    # API service for reading from MongoDB
     crypto-price-api:
         container_name: crypto-price-api
         image: crypto-price-api
@@ -24,7 +24,7 @@ services:
             MONGO_URL: "mongodb://root:example@mongo:27017"
         ports: 
             - 8082:8082
-    # Service to generate prices for BTC 
+    # Services for reading each Crypto Stock price
     btc-crypto-price-producer:
         container_name: btc-crypto-price-producer
         image: crypto-price-producer
@@ -38,7 +38,6 @@ services:
             KAFKA_SERVER: "kafka-1:19091"
             CRYPTO_ID: "BTC"
             MONGO_URL: "mongodb://root:example@mongo:27017"
-    # Service to generate prices for LTC 
     ltc-crypto-price-producer:
         container_name: ltc-crypto-price-producer
         image: crypto-price-producer
@@ -52,7 +51,6 @@ services:
             KAFKA_SERVER: "kafka-1:19091"
             CRYPTO_ID: "LTC"
             MONGO_URL: "mongodb://root:example@mongo:27017/"
-    # Service to generate prices for LTC 
     xrp-crypto-price-producer:
         container_name: xrp-crypto-price-producer
         image: crypto-price-producer
@@ -66,9 +64,7 @@ services:
             KAFKA_SERVER: "kafka-1:19091"
             CRYPTO_ID: "XRP"
             MONGO_URL: "mongodb://root:example@mongo:27017/"
-    
-    
-    # Dummy service 
+    # Receives Kafka messages and updates MongoDB
     crypto-price-change-tracker:
         container_name: crypto-price-change-tracker
         image: crypto-price-change-tracker
@@ -82,54 +78,14 @@ services:
             KAFKA_SERVER: "kafka-1:19091"
             MONGO_URL: "mongodb://root:example@mongo:27017/"
             KAFKA_PARTITION: 0
-
-    # sexy-server-producer:
-    #     container_name: sexy-server-producer
-    #     image: sexy-server-producer
-    #     build:
-    #         context: ./sexy-server-producer
-    #         dockerfile: Dockerfile
-    #     depends_on:
-    #         kafka-1:
-    #             condition: service_healthy
-    #     environment:
-    #         KAFKA_SERVER: "kafka-1:19091"
-    #     ports: 
-    #         - 8080:8080
-
-    # sexy-server-consumer-1:
-    #     container_name: sexy-server-consumer-1
-    #     image: sexy-server-consumer
-    #     build:
-    #         context: ./sexy-server-consumer
-    #         dockerfile: Dockerfile
-    #     depends_on:
-    #         kafka-1:
-    #             condition: service_healthy
-    #     environment:
-    #         KAFKA_SERVER: "kafka-1:19091"
-    #         KAFKA_PARTITION: 0
-
-    # sexy-server-consumer-2:
-    #     container_name: sexy-server-consumer-2
-    #     image: sexy-server-consumer
-    #     build:
-    #         context: ./sexy-server-consumer
-    #         dockerfile: Dockerfile
-    #     depends_on:
-    #         kafka-1:
-    #             condition: service_healthy
-    #     environment:
-    #         KAFKA_SERVER: "kafka-1:19091"
-    #         KAFKA_PARTITION: 1
-
+    # MongoDB
     mongo:
         image: mongo
         restart: always
         environment:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: example
-
+    # MongoUI
     mongo-express:
         image: mongo-express
         restart: always
@@ -140,7 +96,7 @@ services:
             ME_CONFIG_MONGODB_ADMINPASSWORD: example
             ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
             ME_CONFIG_BASICAUTH: false
-
+    # Kafka. UI, Zookeeper, 1 broker
     kafka-ui:
         container_name: kafka-ui
         image: provectuslabs/kafka-ui:latest
