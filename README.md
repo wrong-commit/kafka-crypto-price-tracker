@@ -1,6 +1,7 @@
 # Kafka and K8S First Project
 
-Simple Go web server to perform Kafka producer/consumer calls. Multiple consumers read from two partitions on a single topic. K8S support is planned
+Simple Crypto Coin price tracker. Built with GoLang on Kafka and MongoDB. 
+Multiple consumers read from two partitions on a single topic. 
 
 ## Example Screenshot
 ![Alt text](/screenshots/alpha.png "Alpha Version")
