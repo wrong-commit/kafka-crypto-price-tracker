@@ -1,0 +1,254 @@
+---
+services:
+    # Service to generate prices for BTC 
+    crypto-price-fe:
+        container_name: crypto-price-fe
+        image: crypto-price-fe
+        build:
+            context: ./crypto-price-fe
+            dockerfile: Dockerfile
+        environment:
+            API_URL: "http://localhost:8082"
+        ports: 
+            - 8083:80
+    # Service to generate prices for BTC 
+    crypto-price-api:
+        container_name: crypto-price-api
+        image: crypto-price-api
+        build:
+            context: ./crypto-price-api
+            dockerfile: Dockerfile
+        depends_on:
+            - mongo
+        environment:
+            MONGO_URL: "mongodb://root:example@mongo:27017"
+        ports: 
+            - 8082:8082
+    # Service to generate prices for BTC 
+    btc-crypto-price-producer:
+        container_name: btc-crypto-price-producer
+        image: crypto-price-producer
+        build:
+            context: ./crypto-price-producer
+            dockerfile: Dockerfile
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        environment:
+            KAFKA_SERVER: "kafka-1:19091"
+            CRYPTO_ID: "BTC"
+            MONGO_URL: "mongodb://root:example@mongo:27017"
+    # Service to generate prices for LTC 
+    ltc-crypto-price-producer:
+        container_name: ltc-crypto-price-producer
+        image: crypto-price-producer
+        build:
+            context: ./crypto-price-producer
+            dockerfile: Dockerfile
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        environment:
+            KAFKA_SERVER: "kafka-1:19091"
+            CRYPTO_ID: "LTC"
+            MONGO_URL: "mongodb://root:example@mongo:27017/"
+    # Service to generate prices for LTC 
+    xrp-crypto-price-producer:
+        container_name: xrp-crypto-price-producer
+        image: crypto-price-producer
+        build:
+            context: ./crypto-price-producer
+            dockerfile: Dockerfile
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        environment:
+            KAFKA_SERVER: "kafka-1:19091"
+            CRYPTO_ID: "XRP"
+            MONGO_URL: "mongodb://root:example@mongo:27017/"
+    
+    
+    # Dummy service 
+    crypto-price-change-tracker:
+        container_name: crypto-price-change-tracker
+        image: crypto-price-change-tracker
+        build:
+            context: ./crypto-price-change-tracker
+            dockerfile: Dockerfile
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        environment:
+            KAFKA_SERVER: "kafka-1:19091"
+            MONGO_URL: "mongodb://root:example@mongo:27017/"
+            KAFKA_PARTITION: 0
+
+    # sexy-server-producer:
+    #     container_name: sexy-server-producer
+    #     image: sexy-server-producer
+    #     build:
+    #         context: ./sexy-server-producer
+    #         dockerfile: Dockerfile
+    #     depends_on:
+    #         kafka-1:
+    #             condition: service_healthy
+    #     environment:
+    #         KAFKA_SERVER: "kafka-1:19091"
+    #     ports: 
+    #         - 8080:8080
+
+    # sexy-server-consumer-1:
+    #     container_name: sexy-server-consumer-1
+    #     image: sexy-server-consumer
+    #     build:
+    #         context: ./sexy-server-consumer
+    #         dockerfile: Dockerfile
+    #     depends_on:
+    #         kafka-1:
+    #             condition: service_healthy
+    #     environment:
+    #         KAFKA_SERVER: "kafka-1:19091"
+    #         KAFKA_PARTITION: 0
+
+    # sexy-server-consumer-2:
+    #     container_name: sexy-server-consumer-2
+    #     image: sexy-server-consumer
+    #     build:
+    #         context: ./sexy-server-consumer
+    #         dockerfile: Dockerfile
+    #     depends_on:
+    #         kafka-1:
+    #             condition: service_healthy
+    #     environment:
+    #         KAFKA_SERVER: "kafka-1:19091"
+    #         KAFKA_PARTITION: 1
+
+    mongo:
+        image: mongo
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example
+
+    mongo-express:
+        image: mongo-express
+        restart: always
+        ports:
+        - 8081:8081
+        environment:
+            ME_CONFIG_MONGODB_ADMINUSERNAME: root
+            ME_CONFIG_MONGODB_ADMINPASSWORD: example
+            ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+            ME_CONFIG_BASICAUTH: false
+
+    kafka-ui:
+        container_name: kafka-ui
+        image: provectuslabs/kafka-ui:latest
+        ports:
+            - 8080:8080
+        depends_on:
+            - kafka-1
+        environment:
+            KAFKA_CLUSTERS_0_NAME: local
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:19091
+            # KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+            # KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry0:8085
+            # KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
+            # KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
+            # KAFKA_CLUSTERS_1_NAME: secondLocal
+            # KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: kafka1:29092
+            # KAFKA_CLUSTERS_1_METRICS_PORT: 9998
+            # KAFKA_CLUSTERS_1_SCHEMAREGISTRY: http://schemaregistry1:8085
+            DYNAMIC_CONFIG_ENABLED: 'true'
+    zookeeper-1:
+        image: confluentinc/cp-zookeeper:7.9.0
+        hostname: zookeeper-1
+        container_name: zookeeper-1
+
+        environment:
+            ZOOKEEPER_SERVER_ID: 1
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+            KAFKA_JMX_PORT: 10001
+            KAFKA_JMX_HOSTNAME: localhost
+            KAFKA_OPTS: -javaagent:/tmp/jmx_prometheus_javaagent-1.1.0.jar=8091:/tmp/zookeeper_config.yml
+            ZOOKEEPER_SERVERS: zookeeper-1:2888:3888
+        cap_add:
+            - NET_ADMIN
+        ports:
+            - 2181:2181
+            - 10001:10001
+            - 10101:8091
+        volumes:
+            - $PWD/kafka-assets/volumes/jmx_prometheus_javaagent-1.1.0.jar:/tmp/jmx_prometheus_javaagent-1.1.0.jar
+            - $PWD/kafka-assets/volumes/zookeeper_config.yml:/tmp/zookeeper_config.yml
+            - $PWD/kafka-assets/volumes/jline-2.14.6.jar:/usr/share/java/kafka/jline-2.14.6.jar
+    kafka-1:
+        image: confluentinc/cp-server:7.9.0
+        hostname: kafka-1
+        container_name: kafka-1
+
+        healthcheck:
+            test: KAFKA_OPTS= /usr/bin/kafka-cluster cluster-id --bootstrap-server localhost:9091 || exit 1
+            interval: 10s
+            retries: 10
+            start_period: 20s
+        depends_on:
+            - zookeeper-1
+        environment:
+            KAFKA_LISTENERS: PLAINTEXT://kafka-1:19091, EXTERNAL://0.0.0.0:9091
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:19091, EXTERNAL://localhost:9091
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            KAFKA_JMX_PORT: 10002
+            KAFKA_JMX_HOSTNAME: localhost
+            KAFKA_BROKER_RACK: rack-0
+            KAFKA_OPTS: -javaagent:/tmp/jmx_prometheus_javaagent-1.1.0.jar=8091:/tmp/kafka_config.yml
+            KAFKA_MIN_INSYNC_REPLICAS: 1
+            KAFKA_CONFLUENT_CLUSTER_LINK_ENABLE: False
+            KAFKA_CONFLUENT_REPORTERS_TELEMETRY_AUTO_ENABLE: False
+            KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+            KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181
+            KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+            KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka-1:19091
+        cap_add:
+            - NET_ADMIN
+        ports:
+            - 9091:9091
+            - 10002:10002
+            - 10102:8091
+            - 10201:8090
+        volumes:
+            - $PWD/kafka-assets/volumes/jmx_prometheus_javaagent-1.1.0.jar:/tmp/jmx_prometheus_javaagent-1.1.0.jar
+            - $PWD/kafka-assets/volumes/kafka_config.yml:/tmp/kafka_config.yml
+    prometheus:
+        image: prom/prometheus
+        hostname: prometheus
+        container_name: prometheus
+
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        ports:
+            - 9090:9090
+        volumes:
+            - $PWD/kafka-assets/volumes/prometheus.yml:/etc/prometheus/prometheus.yml
+    grafana:
+        image: grafana/grafana
+        hostname: grafana
+        container_name: grafana
+
+        depends_on:
+            - prometheus
+        environment:
+            GF_PATHS_CONFIG: /etc/grafana/config.ini
+        ports:
+            - 3000:3000
+        volumes:
+            - $PWD/kafka-assets/volumes/provisioning:/etc/grafana/provisioning
+            - $PWD/kafka-assets/volumes/dashboards:/var/lib/grafana/dashboards
+            - $PWD/kafka-assets/volumes/config.ini:/etc/grafana/config.ini

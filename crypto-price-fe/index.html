@@ -1,0 +1,70 @@
+<head>
+    <style>
+        #prices li.up { 
+            color: green
+        }
+        #prices li.down { 
+            color: crimson
+        }
+    </style>
+</head>
+<div>
+    <select id="duration">
+        <option value="5m">5 min</option>
+        <!-- 7 * 24  -->
+        <option value="168h">1 week</option>
+        <!-- 30 * 24  -->
+        <option value="720h">1 month</option>
+        <!-- 365 * 24  -->
+        <option value="8760">1 year</option>
+    </select>
+    <ul id="prices">
+    </ul>
+</div>
+
+<script>
+    async function loadPrices(){
+        const cryptoPrices = await fetch('http://localhost:8082/prices')
+            .then(response => {
+                if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // or response.text() if the response isn't JSON
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+        
+        if(cryptoPrices == undefined ) { 
+            console.log("Error fetching main crypto prices")
+            return;
+        }
+        document.getElementById("prices").innerHTML = ''
+        // Populate list of trackers
+        for(const d of cryptoPrices) { 
+            const duration = document.getElementById("duration").value;
+            const change = await fetch(`http://localhost:8082/changes?cryptoId=${d['name']}&duration=${duration}`)
+                .then(response => {
+                    if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json(); // or response.text() if the response isn't JSON
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                });
+            if(change == undefined ) { 
+                console.log("Error fetching previous crypto prices")
+                return;
+            }
+            const trackerNode = document.createElement("li")
+            const priceChange = change['Price'] - d['price']
+            const upOrDown = priceChange > 0 ? "up" : "down"
+            trackerNode.className = upOrDown
+            trackerNode.textContent = `${d['name']}:${d['price']} - was ${change['Price']} ${upOrDown} by ${priceChange} at ${new Date(change['LastChecked']*1000).toLocaleString()}`
+            document.getElementById("prices").appendChild(trackerNode)   
+        }
+    }
+    loadPrices()
+    setInterval(loadPrices, 10000)
+</script>

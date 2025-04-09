@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        "file:///c%3A/Users/QuinnPerry/.vscode/extensions/atlassian.atlascode-3.4.22/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "https://json.schemastore.org/kustomization.json": "file:///c%3A/dev/kube/first-project/load-balanced-echo-filtered-with-hpa.yaml"
+    }
+}

@@ -1,0 +1,40 @@
+# echo-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-server
+  template:
+    metadata:
+      labels:
+        app: echo-server
+    spec:
+      containers:
+      - name: echo-server
+        image: kicbase/echo-server:1.0
+        resources:
+          requests:
+            cpu: 200m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+# Create service definition so pod can be referenced by DNS @ cpuhog.default.svc.cluster.
+### Help: `kubectl apply -f dns-utils.yaml && kubectl exec -ti dnsutils -- nslookup cpuhog`
+# Can be referenced within a terminal by `wget -q -O- http://echo-server.default.svc.cluster.local:8080`
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-server
+spec:
+  selector:
+    app: echo-server
+  type: LoadBalancer
+  ports:
+    - port: 8081 # External port
+      targetPort: 8080 # Pod port

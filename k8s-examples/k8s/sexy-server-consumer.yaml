@@ -1,0 +1,31 @@
+# echo-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sexy-server-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sexy-server-consumer
+  template:
+    metadata:
+      labels:
+        app: sexy-server-consumer
+    spec:
+      containers:
+      - name: sexy-server-consumer
+        image: sexy-server-consumer
+        imagePullPolicy: Never
+        resources:
+          requests:
+            cpu: 200m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env: 
+        - name: KAFKA_SERVER
+          value: "192.168.49.1:9091"
+        - name: KAFKA_PARTITION
+          value: "0"
