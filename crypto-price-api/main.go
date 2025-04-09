@@ -83,14 +83,21 @@ type PriceChangeResponseVM struct {
 	Period  string
 }
 func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
-	// Get coin
+	// Get coin from query params
 	cryptoId := r.URL.Query().Get("cryptoId")
 	if cryptoId == "" {
 		panic("No crypto ID provided")
 	}
+	// Get duration from query params
 	durationStr := r.URL.Query().Get("duration")
 	if durationStr == "" {
 		durationStr = "1w"
+	}
+	// Get if all should be returned from all price
+	returnAllPrices := false
+	allStr := r.URL.Query().Get("all")
+	if allStr == "true" {
+		returnAllPrices = true
 	}
 
 	// Connect to MongoDB 
@@ -123,34 +130,44 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	// Find the most recent
-	opts := options.FindOne().SetSort(bson.D{{"lastChecked", 1}})
-	var result CryptoPriceChangeDB
-    err = collection.FindOne(findCtx, filter, opts).Decode(&result)
+	opts := options.Find().SetSort(bson.D{{"lastChecked", 1}})
+	var results []CryptoPriceChangeDB
+    cursor, err := collection.Find(findCtx, filter, opts)
     if err != nil {
         fmt.Println("No crypto prices found:", err)
-		fmt.Fprintf(w, "[]")
-    }else{
-		json.NewEncoder(w).Encode(result)	
+		json.NewEncoder(w).Encode(results)	
+    // }else{
+	// 	json.NewEncoder(w).Encode(result)	
 	}
 	// FIXME: do not loop over results twice, too slow!
 	// Convert DB response to json view model
-    // for cursor.Next(findCtx) {
-    //     var cryptoPrice CryptoPriceChangeDB
-    //     if err := cursor.Decode(&cryptoPrice); err != nil {
-    //         fmt.Printf("%v", err)
-    //     }else { 
-	// 		fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
-	// 		results = append(results, cryptoPrice)
-	// 		// if earliestCryptoPrice == nil {
-	// 		// 	earliestCryptoPrice = cryptoPrice
-	// 		// }
-	// 	}
-	// }
-    // if err := cursor.Err(); err != nil {
-    //     fmt.Printf("%v\n", err)
-    // } else { 
+	if returnAllPrices { 
+		for cursor.Next(findCtx) {
+			var cryptoPrice CryptoPriceChangeDB
+			if err := cursor.Decode(&cryptoPrice); err != nil {
+				fmt.Printf("%v", err)
+			}else { 
+				fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
+				results = append(results, cryptoPrice)
+			}
+		}
+	} else { 
+		cursor.Next(findCtx)
+		var cryptoPrice CryptoPriceChangeDB
+		if err := cursor.Decode(&cryptoPrice); err != nil {
+			fmt.Printf("%v", err)
+		}else { 
+			fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
+			results = append(results, cryptoPrice)
+		}
+	}
+
+    if err := cursor.Err(); err != nil {
+        fmt.Printf("%v\n", err)
+    } else { 
 		// Encode the struct to JSON and write to response
-	// }
+		json.NewEncoder(w).Encode(results)	
+	}
 }
 
 func withCORS(next http.Handler) http.Handler {

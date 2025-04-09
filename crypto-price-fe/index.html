@@ -1,4 +1,9 @@
 <head>
+    <script>
+        window.SELECTED_CRYPTO = ""
+        window.SELECTED_DURATION = "5m"
+    </script>
+    <!-- Colour ticker styles -->
     <style>
         #prices li.up { 
             color: green
@@ -7,22 +12,24 @@
             color: crimson
         }
     </style>
-</head>
-<div>
-    <select id="duration">
-        <option value="5m">5 min</option>
-        <!-- 7 * 24  -->
-        <option value="168h">1 week</option>
-        <!-- 30 * 24  -->
-        <option value="720h">1 month</option>
-        <!-- 365 * 24  -->
-        <option value="8760">1 year</option>
-    </select>
-    <ul id="prices">
-    </ul>
-</div>
-
+    <!-- Include apache echarts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+     <!-- Style charts -->
+    <style>
+       #chart {
+         width: 100%;
+         height: 500px;
+       }
+    </style>
+    
 <script>
+    function changeCrypto(e) { 
+        console.log(e) 
+        window.SELECTED_CRYPTO = e
+        if(window.SELECTED_CRYPTO !== "") { 
+            drawGraph(window.SELECTED_CRYPTO)
+        } 
+    }
     async function loadPrices(){
         const cryptoPrices = await fetch('http://localhost:8082/prices')
             .then(response => {
@@ -39,11 +46,17 @@
             console.log("Error fetching main crypto prices")
             return;
         }
+        // if(window.SELECTED_CRYPTO === "") { 
+        //     changeCrypto(cryptoPrices[0]['name'])
+        // }
         document.getElementById("prices").innerHTML = ''
+        document.getElementById("prices").addEventListener('click', e => { 
+            changeCrypto(e.target.textContent.split(':')[0])
+        })
         // Populate list of trackers
         for(const d of cryptoPrices) { 
             const duration = document.getElementById("duration").value;
-            const change = await fetch(`http://localhost:8082/changes?cryptoId=${d['name']}&duration=${duration}`)
+            const changes = await fetch(`http://localhost:8082/changes?cryptoId=${d['name']}&duration=${duration}`)
                 .then(response => {
                     if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -53,18 +66,109 @@
                 .catch(error => {
                     console.error('Fetch error:', error);
                 });
-            if(change == undefined ) { 
+            if(changes == undefined ) { 
                 console.log("Error fetching previous crypto prices")
                 return;
             }
+            const change = changes[0]
             const trackerNode = document.createElement("li")
             const priceChange = change['Price'] - d['price']
             const upOrDown = priceChange > 0 ? "up" : "down"
             trackerNode.className = upOrDown
             trackerNode.textContent = `${d['name']}:${d['price']} - was ${change['Price']} ${upOrDown} by ${priceChange} at ${new Date(change['LastChecked']*1000).toLocaleString()}`
-            document.getElementById("prices").appendChild(trackerNode)   
+            document.getElementById("prices").appendChild(trackerNode)  
+             
         }
+    }
+    async function drawGraph(cryptoId) {
+        const duration = document.getElementById("duration").value;
+        const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
+            .then(response => {
+                if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // or response.text() if the response isn't JSON
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            }); 
+        if(data == undefined ) { 
+            console.log("Error fetching previous crypto prices")
+            return;
+        }
+        // Convert UNIX timestamps to JS Date strings and prepare ECharts data
+        const chartData = data.map(item => [
+            item.LastChecked * 1000, // ECharts accepts ms timestamps
+            item.Price
+        ]);
+        const chart = echarts.init(document.getElementById('chart'));
+        const prices = data.map(item => item.Price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+
+        // Add a small buffer (e.g., 1% of the range or a fixed value)
+        const range = maxPrice - minPrice;
+        const buffer = range === 0 ? 1 : range * 0.1; // Prevent zero-range issues
+
+        const option = {
+            title: {
+            text: `${cryptoId} Stock Price`
+            },
+            tooltip: {
+            trigger: 'axis',
+            formatter: params => {
+                const date = new Date(params[0].value[0]);
+                return `
+                Time: ${date.toLocaleString()}<br>
+                Price: $${params[0].value[1]}
+                `;
+            }
+            },
+            xAxis: {
+                type: 'time',
+                name: 'Time'
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Price (USD)',
+                min: minPrice - buffer,
+                max: maxPrice + buffer
+            },
+            series: [{
+                type: 'line',
+                data: chartData,
+                name: `${cryptoId} Price`,
+                showSymbol: false,
+                smooth: false,
+                lineStyle: {
+                    width: 2
+                }
+            }]
+        };
+        chart.setOption(option);
     }
     loadPrices()
     setInterval(loadPrices, 10000)
+    setInterval(() => { 
+        if(window.SELECTED_CRYPTO !== "") { 
+            drawGraph(window.SELECTED_CRYPTO)
+        } 
+    } , 10000)
+    
 </script>
+
+</head>
+<div>
+    <select id="duration">
+        <option value="5m">5 min</option>
+        <!-- 7 * 24  -->
+        <option value="168h" selected>1 week</option>
+        <!-- 30 * 24  -->
+        <option value="720h">1 month</option>
+        <!-- 365 * 24  -->
+        <option value="8760">1 year</option>
+    </select>
+    <ul id="prices">
+    </ul>
+    <div id="chart"></div>
+</div>
