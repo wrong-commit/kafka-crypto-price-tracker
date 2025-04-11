@@ -30,7 +30,7 @@ type CryptoPriceChangeDB struct {
     Name  		string `bson:"name"`
     Price  	float32	    `bson:"lastPrice"`
     PriceChange  	float32	    `bson:"priceChange"`
-    LastChecked int64     `bson:"lastChecked"`
+    Time int64     `bson:"time"`
 }
 func parseKafkaMessage(message string) (*Message, error) { 
 	parts := strings.Split(message, ":")
@@ -48,12 +48,14 @@ func parseKafkaMessage(message string) (*Message, error) {
 	}, nil
 } 
 
-func updateDatabase(cryptoId string, price float32, lastChecked int64, client *mongo.Client) error { 
-	// 1. Update Price of existing object
-	// 5s timeout for MongoDB lookup
+// Update the database when a message on the crypto price topic is received
+// This method 1. updates the `prices` collection with the latest price,
+// and 2. updates the `price_changes_over_time` collection with a new 
+// entry for the received message. 
+func updateDatabase(cryptoId string, price float32, checkedAt int64, client *mongo.Client) error { 
+	// 1. Update Price of existing `prices` document
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
-	// Choose database and collection
     collection := client.Database("crypto").Collection("prices")
     // Define a filter to look up a specific crypto
     filter := bson.M{"name": cryptoId}
@@ -64,26 +66,26 @@ func updateDatabase(cryptoId string, price float32, lastChecked int64, client *m
         fmt.Println("Initial crypto " + cryptoId + " price not found:", err)
 		return err
 	}
-	// Define the update query
+	// Define the update query to update the price field
 	update := bson.M{
-		"$set": bson.M{"price": price}, // this will update the age field
+		"$set": bson.M{"price": price}, 
 	}
-	// Update main `price` collection object
+	// Update main `price` collection object only if the time since the message is received is less than 1 minute
 	updateResult := collection.FindOneAndUpdate(ctx, filter, update)
 	if updateResult.Err() != nil {
 		fmt.Printf("Could not find and update: %v\n", updateResult.Err())
 		panic(updateResult.Err())
 	}
-	// 2. Create PriceChange entry 
+	// 2. Create a new document in the `price_changes_over_time` 
 	priceChangeEntry := CryptoPriceChangeDB{
 		Name: cryptoId,
 		Price: price, 
 		// Time is Kafka event time
-		LastChecked: lastChecked,
-		// Increase since the last check
-		PriceChange: previousPrice.Price - price,
+		Time: checkedAt,
+		// 120,000 - 100,000 = 20,000
+		PriceChange: price - previousPrice.Price,
 	}
-	// Insert record
+	// Insert record into database
 	collection = client.Database("crypto").Collection("price_changes_over_time")
 	_, err = collection.InsertOne(ctx, &priceChangeEntry)
 	if err != nil {
@@ -93,6 +95,7 @@ func updateDatabase(cryptoId string, price float32, lastChecked int64, client *m
 	return nil
 }
 
+// Receive Kafka messages with new Crypto prices and update 2 tables in the MongoDB database.
 func main() { 
 	topic := "crypto.price.updated"
 	// Lookup necessary environment variables
@@ -161,19 +164,19 @@ func main() {
 		case *kafka.Message:
 			fmt.Printf("Received PART:[%d]OFF[%d]: %s @ %s\n", e.TopicPartition.Partition, e.TopicPartition.Offset, string(e.Value), currentDate)
 			messageCount++
-			// Parse message
+			// Parse message into Message type
 			cryptoMessage, err := parseKafkaMessage(string(e.Value))
 			if err != nil { 
 				panic(err)
 			}
-			// Update database
+			// Update current price and insert price at time
 			err = updateDatabase(cryptoMessage.Name, cryptoMessage.Price, e.Timestamp.Unix(), client)
 			if err != nil { 
 				fmt.Printf("Error updating crypto prices, %v", err)
 			} else { 
 				fmt.Printf("Updated price of crypto \"%s\" to \"%f\"\n", cryptoMessage.Name, cryptoMessage.Price)
 			}
-			run = true // continue processing all messages
+			run = true // continue processing messages
 		// Handle Error
 		case kafka.Error:
 			fmt.Printf("Kafka error: %v\n", e)
@@ -184,5 +187,5 @@ func main() {
 			run = true
 		}
 	}
-	fmt.Printf("Consumed %d messages", messageCount)
+	fmt.Printf("Consumed %d messages in microservice lifetime", messageCount)
 }

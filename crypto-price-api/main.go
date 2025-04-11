@@ -27,13 +27,21 @@ type CryptoPriceChangeDB struct {
     Name  		string `bson:"name"`
     Price  	float32	    `bson:"lastPrice"`
     PriceChange  	float32	    `bson:"priceChange"`
-    LastChecked int64     `bson:"lastChecked"`
+    Time int64     `bson:"time"`
 }
-// Type for current price response
+// VM for current price response
 type CurrentPriceResponseVM struct {
     Name    string 	`json:"name"`
     Price   float32 `json:"price"`
 }
+// VM for historical prices
+type CryptoPriceChangeVM struct {
+    Name    string 	`json:"name"`
+    Price   float32 `json:"price"`
+    Time    int64  	`json:"time"`
+}
+// Return the current price of a crypto. 
+// Returns CurrentPriceResponseVM
 func currentPriceHandler(w http.ResponseWriter, r *http.Request) {
 	// Connect to MongoDB 
 	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -77,11 +85,8 @@ func currentPriceHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(results)	
 	}
 }
-type PriceChangeResponseVM struct {
-    Name    string 
-    Change  float32
-	Period  string
-}
+// Handle to look up price changes within a time period and return a list of all prices or the earliest price
+// Returns: []CryptoPriceChangeVM
 func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 	// Get coin from query params
 	cryptoId := r.URL.Query().Get("cryptoId")
@@ -93,7 +98,7 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 	if durationStr == "" {
 		durationStr = "1w"
 	}
-	// Get if all should be returned from all price
+	// Get if all should be returned from all price, or only the earliest record
 	returnAllPrices := false
 	allStr := r.URL.Query().Get("all")
 	if allStr == "true" {
@@ -123,56 +128,67 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
     }
 	sevenDaysAgo := time.Now().Add(-duration)
+	// Filter to load times greater than the duration
     filter := bson.M{
 		"name": cryptoId,
-		"lastChecked": bson.M{
+		"time": bson.M{
 			"$gt": sevenDaysAgo.Unix(),
 		},
 	}
-	// Find the most recent
-	opts := options.Find().SetSort(bson.D{{"lastChecked", 1}})
-	var results []CryptoPriceChangeDB
+	// Sort in ascending order to find earliest within provided time period
+	opts := options.Find().SetSort(bson.D{{"time", 1}})
+	var results []CryptoPriceChangeVM
+	// Find all results
     cursor, err := collection.Find(findCtx, filter, opts)
+	// Return [] on error
     if err != nil {
         fmt.Println("No crypto prices found:", err)
 		json.NewEncoder(w).Encode(results)	
-    // }else{
-	// 	json.NewEncoder(w).Encode(result)	
 	}
-	// FIXME: do not loop over results twice, too slow!
-	// Convert DB response to json view model
+	// Convert DB response to json view model. Either return array with single earliest element, or all array of all elements
 	if returnAllPrices { 
+		// Return many elements.
 		for cursor.Next(findCtx) {
 			var cryptoPrice CryptoPriceChangeDB
 			if err := cursor.Decode(&cryptoPrice); err != nil {
-				fmt.Printf("%v", err)
+				fmt.Printf("Could not decode CryptoPriceChangeDB %v", err)
 			}else { 
-				fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
-				results = append(results, cryptoPrice)
+				// fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
+				results = append(results, CryptoPriceChangeVM{ 
+					Name: cryptoPrice.Name,
+					Price: cryptoPrice.Price,
+					Time: cryptoPrice.Time,
+				})
 			}
 		}
 	} else { 
+		// Return single element
 		cursor.Next(findCtx)
 		var cryptoPrice CryptoPriceChangeDB
 		if err := cursor.Decode(&cryptoPrice); err != nil {
-			fmt.Printf("%v", err)
+			fmt.Printf("Could not decode CryptoPriceChangeDB %v", err)
 		}else { 
-			fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
-			results = append(results, cryptoPrice)
+			// fmt.Printf("Found crypto document in `price_changes_over_time`: %s\n", cryptoPrice.Name)
+			results = append(results, CryptoPriceChangeVM{ 
+				Name: cryptoPrice.Name,
+				Price: cryptoPrice.Price,
+				Time: cryptoPrice.Time,
+			})
 		}
 	}
-
+	// Handle cursor errors
     if err := cursor.Err(); err != nil {
         fmt.Printf("%v\n", err)
-    } else { 
-		// Encode the struct to JSON and write to response
-		json.NewEncoder(w).Encode(results)	
 	}
+	// Return JSON array to user
+	json.NewEncoder(w).Encode(results)	
 }
 
+// Create a http HandlerFunc to add permissive CORS headers 
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow all origins for simplicity. Customize in production.
+		// Allow all origins for simplicity. 
+		// FIXME: Customize in production, 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -193,12 +209,12 @@ func main() {
 	if !didFind { 
 		panic("No MongoDB URL provided")
 	}
-
+	// Create HTTP Server Mux to support CORS middleware
 	mux := http.NewServeMux()
-
+	// Assign HTTP routes
 	mux.Handle("/prices", withCORS(http.HandlerFunc(currentPriceHandler)))
 	mux.Handle("/changes", withCORS(http.HandlerFunc(priceChangeHandler)))
-
+	// Start server 
 	fmt.Println("Starting server at :8082")
 	err := http.ListenAndServe(":8082", mux)
 	if err != nil {

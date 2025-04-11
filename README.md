@@ -1,4 +1,4 @@
-# Kafka and K8S First Project
+# Crypto Price Tracker
 
 Simple Crypto Coin price tracker. Built with GoLang on Kafka and MongoDB. 
 Multiple consumers read from two partitions on a single topic. 
@@ -25,5 +25,4 @@ Access at `http://localhost:8080` after starting Docker containers
 Access at `http://localhost:8081` after starting Docker containers 
 
 # Kubernetes
-An example k8s application exists in the `autoscaled-project` folder which runs an echo server with multiple echo servers. 
-
+An example k8s application exists in the `k8s-examples` folder which starts several load balanced echo servers. 

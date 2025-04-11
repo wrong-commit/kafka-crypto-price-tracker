@@ -10,6 +10,9 @@
         #prices li.down { 
             color: crimson
         }
+        #prices li.stable { 
+            color: cornflowerblue
+        }
     </style>
     <!-- Include apache echarts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -20,7 +23,23 @@
          height: 500px;
        }
     </style>
-    
+</head>
+<div>
+    <select id="duration">
+        <option value="5m">5 min</option>
+        <option value="1h">1 hour</option>
+        <!-- 7 * 24  -->
+        <option value="168h" selected>1 week</option>
+        <!-- 30 * 24  -->
+        <option value="720h">1 month</option>
+        <!-- 365 * 24  -->
+        <option value="8760">1 year</option>
+    </select>
+    <ul id="prices">
+    </ul>
+    <div id="chart"></div>
+</div>
+
 <script>
     function changeCrypto(e) { 
         console.log(e) 
@@ -45,17 +64,16 @@
             console.log("Error fetching main crypto prices")
             return;
         }
-        // if(window.SELECTED_CRYPTO === "") { 
-        //     changeCrypto(cryptoPrices[0]['name'])
-        // }
+        // Clear HTML of #prices
         document.getElementById("prices").innerHTML = ''
+        // Add event listener on #prices to update selected crypto
         document.getElementById("prices").addEventListener('click', e => { 
             changeCrypto(e.target.textContent.split(':')[0])
         })
-        // Populate list of trackers
-        for(const d of cryptoPrices) { 
+        // Populate list of crypto names, current price, and change in duration
+        for(const currentPrice of cryptoPrices) { 
             const duration = document.getElementById("duration").value;
-            const changes = await fetch(`http://localhost:8082/changes?cryptoId=${d['name']}&duration=${duration}`)
+            const changes = await fetch(`http://localhost:8082/changes?cryptoId=${currentPrice['name']}&duration=${duration}`)
                 .then(response => {
                     if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -69,16 +87,24 @@
                 console.log("Error fetching previous crypto prices")
                 return;
             }
-            const change = changes[0]
+            const previousPrice = changes[0]
             const trackerNode = document.createElement("li")
-            const priceChange = change['Price'] - d['price']
-            const upOrDown = priceChange > 0 ? "up" : "down"
+            // Scenario: Price at 5mins ago is 100,000. Price now is 120,000
+            //           100,000 - 120,000 = -20,000. This is wrong, price went up 20,000 
+            //           120,000 - 100,000 = 20,000. This is correct, price went up 20,000 
+            //           priceChange > 0, so up not down 
+            const priceChange = currentPrice['price'] - previousPrice['price'] 
+            // Set to 'stable', 'up', or 'down' based on price change
+            const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
             trackerNode.className = upOrDown
-            trackerNode.textContent = `${d['name']}:${d['price']} - was ${change['Price']} ${upOrDown} by ${priceChange} at ${new Date(change['LastChecked']*1000).toLocaleString()}`
+            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} at ${new Date(previousPrice['time']*1000).toLocaleString()}`
             document.getElementById("prices").appendChild(trackerNode)  
-             
         }
     }
+    /**
+     * Draw a line graph representing prices of crypto over time. The time period shown is controlled
+     * by the duration  
+     */
     async function drawGraph(cryptoId) {
         const duration = document.getElementById("duration").value;
         const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
@@ -97,11 +123,13 @@
         }
         // Convert UNIX timestamps to JS Date strings and prepare ECharts data
         const chartData = data.map(item => [
-            item.LastChecked * 1000, // ECharts accepts ms timestamps
-            item.Price
+            item.time * 1000, // ECharts accepts ms timestamps
+            item.price
         ]);
+        // Initiate chart, determine chart size, and format data
         const chart = echarts.init(document.getElementById('chart'));
-        const prices = data.map(item => item.Price);
+         
+        const prices = data.map(item => item.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
 
@@ -129,7 +157,7 @@
             },
             yAxis: {
                 type: 'value',
-                name: 'Price (USD)',
+                name: 'Price (AUD)',
                 min: minPrice - buffer,
                 max: maxPrice + buffer
             },
@@ -146,29 +174,19 @@
         };
         chart.setOption(option);
     }
+    // Load initial prices
     loadPrices()
+    // Reload prices every 10 seconds
     setInterval(loadPrices, 10000)
+    // Redraw graph every 10 seconds
     setInterval(() => { 
         if(window.SELECTED_CRYPTO !== "") { 
             drawGraph(window.SELECTED_CRYPTO)
         } 
     } , 10000)
-    
+    // Add onchange listener to reload data when #duration changes
+    document.getElementById('duration').addEventListener('change', e => { 
+        loadPrices()
+        drawGraph(window.SELECTED_CRYPTO);
+    })
 </script>
-
-</head>
-<div>
-    <select id="duration">
-        <option value="5m">5 min</option>
-        <option value="1h">1 hour</option>
-        <!-- 7 * 24  -->
-        <option value="168h" selected>1 week</option>
-        <!-- 30 * 24  -->
-        <option value="720h">1 month</option>
-        <!-- 365 * 24  -->
-        <option value="8760">1 year</option>
-    </select>
-    <ul id="prices">
-    </ul>
-    <div id="chart"></div>
-</div>

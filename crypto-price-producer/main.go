@@ -87,7 +87,7 @@ func lookupNewCryptoPrice(cryptoId string) float32 {
 	return float32(roundedPrice)
 }
 
-func getCoinbasePrice(symbol string) (float64, error) {
+func getCoinbasePrice(symbol string,) (float64, error) {
     url := fmt.Sprintf(coinbaseCryptoAPI, symbol, currency)
     resp, err := http.Get(url)
     if err != nil {
@@ -127,6 +127,7 @@ func main() {
 	if !didFind { 
 		panic("No MongoDB URL provided")
 	}
+	fmt.Printf("STARTUP: Tracking [%s] prices every 5s", cryptoId)
 	// Connect to MongoDB 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -141,50 +142,52 @@ func main() {
 		panic(err)
 	}
 	defer p.Close()
-	// Every 1 minute get BTC price
+	// Every 1 minute get crypto price
 	messageCount := 0
 	for { 
 		// fmt.Println("Checking price for " + cryptoId)
-		// Lookup previous price from DB
-		_, err := lookupOldCryptoPrice(cryptoId, client)
-		// Create new 
-		if err != nil { 
-			fmt.Println("Creating new `prices` document for " + cryptoId)
-			createNewPrice := CryptoPriceDB{
-				Name: cryptoId,
-				Price: -1,
-			}
-			// Insert record
-			collection := client.Database("crypto").Collection("prices")
-			_, err = collection.InsertOne(ctx, &createNewPrice)
-			if err != nil {
-				fmt.Printf("Insert new `prices` document failed: %v", err)
-			}else { 
-				fmt.Printf("Created new crypto success for " + cryptoId)
-			}
-		}
-		// Check crypto price from MongoDB
-		// FIXME: simulated lookup to remote service, hardcoded for testing
+		// Check crypto price from Coinbase
 		cryptoPrice := lookupNewCryptoPrice(cryptoId)
 		fmt.Printf("Fetched new crypto price: %f\n", cryptoPrice)
 		if cryptoPrice == -1 { 
 			fmt.Printf(fmt.Sprintf("Not updating crypto price for %f because of failed API lookup", cryptoPrice))
-		}else { 
-			// Publish Message
-			err = p.Produce(&kafka.Message{
-				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-				Value:          []byte(fmt.Sprintf("%s:%f", cryptoId, cryptoPrice)),
-			}, nil)
-			if err != nil {
-				fmt.Println("Could not produce Kafka message")
-			} else { 
-				messageCount++
+			// Sleep then restart loop
+			time.Sleep(5*time.Second)
+			continue
+		}
+
+		// Lookup previous price from DB
+		_, err := lookupOldCryptoPrice(cryptoId, client)
+		// err != nil means we are tracking the crypto for the first time!
+		if err != nil { 
+			fmt.Println("Creating new `prices` document for " + cryptoId)
+			createNewPrice := CryptoPriceDB{
+				Name: cryptoId,
+				Price: cryptoPrice,
 			}
+			// Insert record with current price
+			collection := client.Database("crypto").Collection("prices")
+			_, err = collection.InsertOne(ctx, &createNewPrice)
+			if err != nil {
+				fmt.Printf("Insert new `prices` document failed: %v\n", err)
+			}else { 
+				fmt.Printf("Created new crypto success for %s\n", cryptoId)
+			}
+		}
+		// Publish Message
+		err = p.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Value:          []byte(fmt.Sprintf("%s:%f", cryptoId, cryptoPrice)),
+		}, nil)
+		if err != nil {
+			fmt.Printf("Could not produce Kafka message: %v\n", err)
+		} else { 
+			messageCount++
 		}
 		// Wait for all messages to be delivered
 		p.Flush(2000)
 		// Sleep
 		time.Sleep(5*time.Second)
 	}
-	fmt.Printf("Produced %d messages", messageCount)
+	fmt.Printf("Produced %d messages in microservice lifetime", messageCount)
 }

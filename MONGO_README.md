@@ -21,7 +21,7 @@ type PriceChangeDB struct {
     // Price at time crypto was checked
     Price float32	    `bson:"lastPrice"`
     // Time that the crypto check occurred
-    LastChecked float32     `bson:"lastChecked"`
+    Time float32     `bson:"time"`
     // Increase/decrease since the last check
     PriceChange float32 `bson:"priceChange"`
 }
