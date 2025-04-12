@@ -304,6 +304,10 @@ func createAssetHandler(w http.ResponseWriter, r *http.Request) {
         fmt.Printf("Error converting string to int:", err)
 		return
 	}
+	// Specially handle purchaseTimeF32, incase its been incorrectly sent by the FE JS 
+	if purchaseTimeF32 >= 1712893600000 {
+		purchaseTimeF32 = purchaseTimeF32 / 1000
+	}
 	purchasePriceF32, err := strconv.ParseFloat(purchasePrice, 32)
 	if err != nil {
         fmt.Printf("Error converting string to int:", err)
