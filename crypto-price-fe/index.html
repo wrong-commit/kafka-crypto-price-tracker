@@ -4,27 +4,31 @@
     </script>
     <!-- Colour ticker styles -->
     <style>
-        #prices li.up { 
+        .up {
             color: green
         }
-        #prices li.down { 
+
+        .down {
             color: crimson
         }
-        #prices li.stable { 
+
+        .stable {
             color: cornflowerblue
         }
     </style>
     <!-- Include apache echarts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-     <!-- Style charts -->
+    <!-- Style charts -->
     <style>
-       #chart {
-         width: 100%;
-         height: 500px;
-       }
+        #chart {
+            width: 100%;
+            height: 500px;
+        }
     </style>
 </head>
 <div>
+    <h2>Crypto Price Tracker</h2>
+    <span>Time Period: </span>
     <select id="duration">
         <option value="5m">5 min</option>
         <option value="1h">1 hour</option>
@@ -35,55 +39,90 @@
         <!-- 365 * 24  -->
         <option value="8760">1 year</option>
     </select>
+    <h3>Current Crypto Price</h3>
     <ul id="prices">
     </ul>
     <div id="chart"></div>
+    <h2>Asset Tracker</h2>
+    <h3>Add New Asset</h3>
+    <form id="assetForm" action="/assets" method="POST">
+        <label for="cryptoId">Crypto Name</label>
+        <input name="cryptoId" />
+        <label for="amount">Amount</label>
+        <input name="amount" />
+        <label for="purchasePrice">Purchase Price in AUD</label>
+        <input name="purchasePrice" />
+        <label for="purchaseTime">Purchase Time</label>
+        <input name="purchaseTime" type="number" />
+        <button id="btnAddAsset" type="submit">Add Asset</button>
+    </form>
+    <h3>All Assets</h3>
+    <table>
+        <thead>
+            <th>Crypto Name</th>
+            <th>Crypto Amount</th>
+            <th>Purchase Price</th>
+            <th>Purchase Time</th>
+            <th>Unrealised Profit/Loss</th>
+            <th>Sale Time</th>
+            <th>Sale Price</th>
+            <th>Realised Profit/Loss</th>
+            <th>Sell!!!</th>
+        </thead>
+        <tbody id="assets">
+
+        </tbody>
+    </table>
 </div>
 
 <script>
-    function changeCrypto(e) { 
-        console.log(e) 
+    function changeCrypto(e) {
+        console.log(e)
         window.SELECTED_CRYPTO = e
-        if(window.SELECTED_CRYPTO !== "") { 
+        if (window.SELECTED_CRYPTO !== "") {
             drawGraph(window.SELECTED_CRYPTO)
-        } 
+        }
     }
-    async function loadPrices(){
+    /**
+     * Populate the #prices element with current crypto prices. 
+     * Shows change in price since #duration
+     */
+    async function loadPrices() {
         const cryptoPrices = await fetch('http://localhost:8082/prices')
             .then(response => {
                 if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json(); // or response.text() if the response isn't JSON
             })
             .catch(error => {
                 console.error('Fetch error:', error);
             });
-        
-        if(cryptoPrices == undefined ) { 
+
+        if (cryptoPrices == undefined) {
             console.log("Error fetching main crypto prices")
             return;
         }
         // Clear HTML of #prices
         document.getElementById("prices").innerHTML = ''
         // Add event listener on #prices to update selected crypto
-        document.getElementById("prices").addEventListener('click', e => { 
+        document.getElementById("prices").addEventListener('click', e => {
             changeCrypto(e.target.textContent.split(':')[0])
         })
         // Populate list of crypto names, current price, and change in duration
-        for(const currentPrice of cryptoPrices) { 
+        for (const currentPrice of cryptoPrices) {
             const duration = document.getElementById("duration").value;
             const changes = await fetch(`http://localhost:8082/changes?cryptoId=${currentPrice['name']}&duration=${duration}`)
                 .then(response => {
                     if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json(); // or response.text() if the response isn't JSON
                 })
                 .catch(error => {
                     console.error('Fetch error:', error);
                 });
-            if(changes == undefined ) { 
+            if (changes == undefined) {
                 console.log("Error fetching previous crypto prices")
                 return;
             }
@@ -93,12 +132,119 @@
             //           100,000 - 120,000 = -20,000. This is wrong, price went up 20,000 
             //           120,000 - 100,000 = 20,000. This is correct, price went up 20,000 
             //           priceChange > 0, so up not down 
-            const priceChange = currentPrice['price'] - previousPrice['price'] 
+            const priceChange = currentPrice['price'] - previousPrice['price']
             // Set to 'stable', 'up', or 'down' based on price change
             const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
             trackerNode.className = upOrDown
-            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} at ${new Date(previousPrice['time']*1000).toLocaleString()}`
-            document.getElementById("prices").appendChild(trackerNode)  
+            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} at ${new Date(previousPrice['time'] * 1000).toLocaleString()}`
+            document.getElementById("prices").appendChild(trackerNode)
+        }
+    }
+    /**
+     * Populate #assets with current assets
+     */
+    async function loadAssets() {
+        // Load list of assets
+        const assets = await fetch('http://localhost:8082/assets')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // or response.text() if the response isn't JSON
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+
+        if (assets == undefined) {
+            console.log("Error fetching asset list")
+            return;
+        }
+        // Load current crypto prices
+        const currentPrices = await fetch('http://localhost:8082/prices')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // or response.text() if the response isn't JSON
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+        if (currentPrices == undefined) {
+            console.log("Error fetching current crypto prices")
+            return;
+        }
+        // Clear HTML of #assets
+        document.getElementById("assets").innerHTML = ''
+        // Populate list of assets. 
+        for (const asset of assets) {
+            const tr = document.createElement("tr")
+            document.getElementById("assets").appendChild(tr)
+            // Crypto Name
+            const tdName = document.createElement('td')
+            tdName.textContent = asset['name']
+            // Crypto Amount
+            const tdAmount = document.createElement('td')
+            tdAmount.textContent = asset['amount']
+            // Purchase Price
+            const tdPurchasePrice = document.createElement('td')
+            tdPurchasePrice.textContent = asset['purchasePrice']
+            // Purchase Time dd/MM/yyyy HH:mm:SS
+            const tdPurchaseTime = document.createElement('td')
+            tdPurchaseTime.textContent = new Date(asset['purchaseTime'] * 1000).toLocaleString()
+            // Unrealised profit and loss
+            const tdUnrealisedProfitLoss = document.createElement('td')
+            {
+                if(asset['status'] === 'held') { 
+                    // Purchase Price - current Price
+                    // purchased 120,000, sold 100,000. Unrealised profit for 20,000
+                    const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
+                    const priceChange = currentPrice['price'] - asset['purchasePrice'] 
+                    const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
+                    tdUnrealisedProfitLoss.className = upOrDown
+                    tdUnrealisedProfitLoss.textContent = `${priceChange} (Total: $${priceChange * asset['amount']} AUD)`
+                }
+            }
+            // Sale Time dd/MM/yyyy HH:mm:SS
+            const tdSaleTime = document.createElement('td')
+            tdSaleTime.textContent = asset['status'] === 'sold' ? new Date(asset['saleTime'] * 1000).toLocaleString() : ''
+            // Sale Price
+            const tdSalePrice = document.createElement('td')
+            tdSalePrice.textContent = asset['status'] === 'sold' ? `$${asset['salePrice']} AUD` : ''
+            // Realise Profits 
+            const tdRealisedProfitLoss = document.createElement('td')
+            {
+                if(asset['status'] === 'sold') { 
+                    // Purchase Price - Sale Price
+                    // purchased 100,000, sold 120,000. Realised profit for 20,000
+                    const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
+                    const priceChange = asset['salePrice'] - asset['purchasePrice']
+                    const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
+                    tdRealisedProfitLoss.className = upOrDown
+                    tdRealisedProfitLoss.textContent = `${priceChange} (Total: $${priceChange * asset['amount']} AUD)`
+                }
+            }
+            const tdSell = document.createElement('td')
+            const btnSell = document.createElement('button')
+            tdSell.appendChild(btnSell)
+            btnSell.textContent = 'Sell!'
+            btnSell.addEventListener('click', e=> {
+                fetch(`http://localhost:8082/sellAsset?assetId=${asset['_id']}`, {
+                    method: 'POST',
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    loadAssets()
+                })
+                .catch(error => {
+                    alert(`Error: ${error}`);
+                })
+            })
+
+            tr.append(tdName, tdAmount, tdPurchasePrice, tdPurchaseTime, tdUnrealisedProfitLoss, tdSaleTime, tdSalePrice, tdRealisedProfitLoss, tdSell)
+
         }
     }
     /**
@@ -110,14 +256,14 @@
         const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
             .then(response => {
                 if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json(); // or response.text() if the response isn't JSON
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-            }); 
-        if(data == undefined ) { 
+            });
+        if (data == undefined) {
             console.log("Error fetching previous crypto prices")
             return;
         }
@@ -128,7 +274,7 @@
         ]);
         // Initiate chart, determine chart size, and format data
         const chart = echarts.init(document.getElementById('chart'));
-         
+
         const prices = data.map(item => item.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
@@ -179,14 +325,35 @@
     // Reload prices every 10 seconds
     setInterval(loadPrices, 10000)
     // Redraw graph every 10 seconds
-    setInterval(() => { 
-        if(window.SELECTED_CRYPTO !== "") { 
+    setInterval(() => {
+        if (window.SELECTED_CRYPTO !== "") {
             drawGraph(window.SELECTED_CRYPTO)
-        } 
-    } , 10000)
+        }
+    }, 10000)
     // Add onchange listener to reload data when #duration changes
-    document.getElementById('duration').addEventListener('change', e => { 
+    document.getElementById('duration').addEventListener('change', e => {
         loadPrices()
         drawGraph(window.SELECTED_CRYPTO);
     })
+    // Load initial prices
+    loadAssets()
+    // Reload prices every 10 seconds
+    setInterval(loadAssets, 10000)
+    // Add Ajax request to #assetForm
+    document.getElementById('assetForm').addEventListener('submit', function (e) {
+        e.preventDefault(); // prevent page reload
+        const formData = new FormData(e.target);
+        fetch(`http://localhost:8082/assets`, {
+            method: 'POST',
+            body: formData,
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            loadAssets()
+        })
+            .catch(error => {
+                alert(`Error: ${error}`);
+            })
+    });
 </script>

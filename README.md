@@ -1,10 +1,11 @@
 # Crypto Price Tracker
 
-Simple Crypto Coin price tracker. Built with GoLang on Kafka and MongoDB. 
+Crypto Coin price tracker and Profit Loss Estimator. Built with GoLang on Kafka and MongoDB. 
 Multiple consumers read from two partitions on a single topic. 
 
 ## Example Screenshot
-![Alt text](/screenshots/alpha.png "Alpha Version")
+<!-- ![Alt text](/screenshots/alpha.png "AlpBha Version") -->
+![Alt text](/screenshots/beta-1.png "Beta Version")
 
 # Startup
 Run `docker compose build && docker compose up` to start MongoDB, Kafka, Golang consumer and producers, and Kafka monitoring tools
