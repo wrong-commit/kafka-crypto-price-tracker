@@ -253,7 +253,7 @@
             tdPurchasePrice.textContent = asset['purchasePrice']
             // Purchase Time dd/MM/yyyy HH:mm:SS
             const tdPurchaseTime = document.createElement('td')
-            tdPurchaseTime.textContent = new Date(asset['purchaseTime'] * 1000).toLocaleString()
+            tdPurchaseTime.textContent = new Date(asset['purchaseTime']).toLocaleString()
             // Unrealised profit and loss
             const tdUnrealisedProfitLoss = document.createElement('td')
             {
@@ -462,7 +462,7 @@
         e.preventDefault(); // prevent page reload
         const formData = new FormData(e.target);
         // Convert datetime-local into unix epoch
-        formData.set('purchaseTime', new Date(document.getElementById('assetForm_purchaseTime').value).getTime())
+        formData.set('purchaseTime', new Date(document.getElementById('assetForm_purchaseTime').value).getTime() / 1000)
         fetch(`http://localhost:8082/assets`, {
             method: 'POST',
             body: formData,

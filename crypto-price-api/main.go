@@ -245,7 +245,7 @@ func findAssetsHandler(w http.ResponseWriter, r *http.Request) {
 		// "name": cryptoId,
 	}
 	// Sort in ascending order of purchase time
-	opts := options.Find().SetSort(bson.D{{"purchaseTime", 1}})
+	opts := options.Find().SetSort(bson.D{{"purchaseTime", -1}})
 	var results []AssetVM
 	// Find all results
     cursor, err := collection.Find(findCtx, filter, opts)
