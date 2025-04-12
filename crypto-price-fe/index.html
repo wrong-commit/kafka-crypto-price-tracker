@@ -25,150 +25,177 @@
             height: 500px;
         }
     </style>
+    <!-- Font for Headers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Style for monospace font */
+        .space-mono-regular {
+            font-family: "Space Mono", monospace;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        /* Style for box */
+        .box {
+            border: 1px solid black;
+            padding: 0 0.5rem 0 0.5rem;
+            border-radius: 5px;
+        }
+
+        /* Pad  */
+        .box>h3,
+        #duration {
+            padding-left: 1rem;
+        }
+    </style>
 </head>
-<div>
-    <h2>Crypto Price Tracker</h2>
-    <span>Time Period: </span>
-    <select id="duration">
-        <option value="5m">5 min</option>
-        <option value="1h" selected>1 hour</option>
-        <!-- 7 * 24  -->
-        <option value="168h">1 week</option>
-        <!-- 30 * 24  -->
-        <option value="720h">1 month</option>
-        <!-- 365 * 24  -->
-        <option value="8760h">1 year</option>
-    </select>
-    <h3>Current Crypto Price</h3>
-    <ul id="prices">
-    </ul>
-    <div style="display: flex; flex: 1 0 auto">
-        <div id="chart"></div>
-        <div>
-            <h3>Important Trading Times</h3>
-            <table border="1" cellpadding="10" cellspacing="0">
-                <thead>
-                  <tr>
-                    <th>Time (AEST)</th>
-                    <th>Event / Market Activity</th>
-                    <th>Why It Matters</th>
-                  </tr>
+
+<body style="background-color: oklch(92.9% 0.013 255.508);">
+    <div>
+        <h2 class="space-mono-regular">Crypto Price Tracker</h2>
+        <div class="box">
+            <h3 class="space-mono-regular">Crypto Price (via Coinbase)</h3>
+            <!-- <span>Time Period: </span> -->
+            <select id="duration">
+                <option value="5m">5 min</option>
+                <option value="1h" selected>1 hour</option>
+                <!-- 7 * 24  -->
+                <option value="168h">1 week</option>
+                <!-- 30 * 24  -->
+                <option value="720h">1 month</option>
+                <!-- 365 * 24  -->
+                <option value="8760h">1 year</option>
+            </select>
+            <hr />
+            <ul id="prices">
+            </ul>
+        </div>
+        <br />
+        <div class="box">
+            <h3 id="chart_title" class="space-mono-regular"></h3>
+            <hr />
+            <div style="display: flex; flex: 1 0 auto">
+                <div id="chart"></div>
+                <div>
+                    <table border="1" cellpadding="10" cellspacing="0">
+                        <thead class="space-mono-regular">
+                            <tr>
+                                <th>Time (AEST)</th>
+                                <th>Event / Market Activity</th>
+                                <th>Why It Matters</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>9:00 AM</td>
+                                <td>Tokyo open</td>
+                                <td>Asian session kicks off, liquidity starts rising. Japan news impacts.</td>
+                            </tr>
+                            <tr>
+                                <td>10:00 AM (next day)</td>
+                                <td>Daily candle closes (00:00 UTC)</td>
+                                <td>Many traders base decisions around this. Often triggers bot activity, new orders.
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>11:00 AM</td>
+                                <td>China & Hong Kong ramp up</td>
+                                <td>Major volume boost — China-based traders start moving big capital.</td>
+                            </tr>
+                            <tr>
+                                <td>3:00 PM</td>
+                                <td>Asia active, London waking up</td>
+                                <td>Liquidity and volatility increase as Europe joins.</td>
+                            </tr>
+                            <tr>
+                                <td>5:00 PM</td>
+                                <td>London market opens</td>
+                                <td>One of the most liquid times of day. Major banks and institutions enter.</td>
+                            </tr>
+                            <tr>
+                                <td>10:00 PM</td>
+                                <td>New York open (8:00 AM NY time)</td>
+                                <td>U.S. traders jump in, massive volume spike often follows.</td>
+                            </tr>
+                            <tr>
+                                <td>12:00 AM</td>
+                                <td>Overlap of London + New York</td>
+                                <td>Peak liquidity globally. High volatility, price action accelerates.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <h2 class="space-mono-regular">Asset Tracker</h2>
+        <div class="box">
+            <h3 class="space-mono-regular">Add New Asset</h3>
+            <form id="assetForm" action="/assets" method="POST" style="display: flex; justify-content: space-around;">
+                <div>
+                    <label for="cryptoId">Crypto Name</label>
+                    <input name="cryptoId" />
+                </div>
+                <div>
+                    <label for="amount">Amount</label>
+                    <input name="amount" />
+                </div>
+                <div>
+                    <label for="purchasePrice">Purchase Price in AUD</label>
+                    <input name="purchasePrice" />
+                </div>
+                <div>
+                    <label for="purchaseTime">Purchase Time</label>
+                    <input name="purchaseTime" type="datetime-local" />
+                </div>
+                <div>
+                    <button id="btnAddAsset" type="submit">Add Asset</button>
+                </div> 
+                <div>
+                    <button id="btnPrepopulateAssetForm" type="button">Prepoulate Buy Now</button>
+                </div>
+            </form>
+            <br />
+        </div>
+        <br />
+        <div class="box">
+            <h3 class="space-mono-regular">Profit Tracked Assets</h3>
+            <table border="1" cellpadding="10" cellspacing="0" width="100%">
+                <thead class="space-mono-regular">
+                    <th>Crypto Name</th>
+                    <th>Amount</th>
+                    <th>Purchase Price</th>
+                    <th>Purchase Amount AUD</th>
+                    <th>Purchase Time</th>
+                    <th>Potential P/L (Total AUD)</th>
+                    <th>Sale Price</th>
+                    <th>Sale Amount AUD</th>
+                    <th>Sale Time</th>
+                    <th>Realised P/L (Total AUD)</th>
+                    <th>Sell !!!</th>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>9:00 AM</td>
-                    <td>Tokyo open</td>
-                    <td>Asian session kicks off, liquidity starts rising. Japan news impacts.</td>
-                  </tr>
-                  <tr>
-                    <td>11:00 AM</td>
-                    <td>China & Hong Kong ramp up</td>
-                    <td>Major volume boost — China-based traders start moving big capital.</td>
-                  </tr>
-                  <tr>
-                    <td>3:00 PM</td>
-                    <td>Asia active, London waking up</td>
-                    <td>Liquidity and volatility increase as Europe joins.</td>
-                  </tr>
-                  <tr>
-                    <td>5:00 PM</td>
-                    <td>London market opens</td>
-                    <td>One of the most liquid times of day. Major banks and institutions enter.</td>
-                  </tr>
-                  <tr>
-                    <td>10:00 PM</td>
-                    <td>New York open (8:00 AM NY time)</td>
-                    <td>U.S. traders jump in, massive volume spike often follows.</td>
-                  </tr>
-                  <tr>
-                    <td>12:00 AM</td>
-                    <td>Overlap of London + New York</td>
-                    <td>Peak liquidity globally. High volatility, price action accelerates.</td>
-                  </tr>
-                  <tr>
-                    <td>10:00 AM (next day)</td>
-                    <td>Daily candle closes (00:00 UTC)</td>
-                    <td>Many traders base decisions around this. Often triggers bot activity, new orders.</td>
-                  </tr>
+                <tbody id="assets">
+                    <!-- Generated by loadAssets() -->
                 </tbody>
-              </table>
+            </table>
         </div>
     </div>
-    <h2>Asset Tracker</h2>
-    <h3>Add New Asset</h3>
-    <form id="assetForm" action="/assets" method="POST">
-        <label for="cryptoId">Crypto Name</label>
-        <input name="cryptoId" />
-        <label for="amount">Amount</label>
-        <input name="amount" />
-        <label for="purchasePrice">Purchase Price in AUD</label>
-        <input name="purchasePrice" />
-        <label for="purchaseTime">Purchase Time</label>
-        <input name="purchaseTime" type="datetime-local" />
-        <button id="btnAddAsset" type="submit">Add Asset</button>
-        <button id="btnPrepopulateAssetForm" type="button">Prepoulate Buy Now</button>
-    </form>
-    <h3>All Assets</h3>
-    <table border="1" cellpadding="10" cellspacing="0" width="100%">
-        <thead>
-            <th>Crypto Name</th>
-            <th>Amount</th>
-            <th>Purchase Price</th>
-            <th>Purchase Amount AUD</th>
-            <th>Purchase Time</th>
-            <th>Potential P/L (Total AUD)</th>
-            <th>Sale Price</th>
-            <th>Sale Amount AUD</th>
-            <th>Sale Time</th>
-            <th>Realised P/L (Total AUD)</th>
-            <th>Sell !!!</th>
-        </thead>
-        <tbody id="assets">
-            <!-- Generated by loadAssets() -->
-        </tbody>
-    </table>
-</div>
 
-<script>
-    function changeCrypto(newCrypto) {
-        console.log(`Viewing ${newCrypto}`)
-        window.SELECTED_CRYPTO = newCrypto
-        sessionStorage.setItem('window.SELECTED_CRYPTO', window.SELECTED_CRYPTO)
-        drawCryptoPriceGraph(window.SELECTED_CRYPTO)
-    }
-    /**
-     * Populate the #prices element with current crypto prices. 
-     * Shows change in price since #duration
-     */
-    async function loadPrices() {
-        const cryptoPrices = await fetch('http://localhost:8082/prices')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json(); // or response.text() if the response isn't JSON
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-            });
-
-        if (cryptoPrices == undefined) {
-            console.log("Error fetching main crypto prices")
-            return;
+    <script>
+        function changeCrypto(newCrypto) {
+            console.log(`Viewing ${newCrypto}`)
+            window.SELECTED_CRYPTO = newCrypto
+            sessionStorage.setItem('window.SELECTED_CRYPTO', window.SELECTED_CRYPTO)
+            drawCryptoPriceGraph(window.SELECTED_CRYPTO)
         }
-        if(window.SELECTED_CRYPTO === '') { 
-            changeCrypto(cryptoPrices[0].name)
-        }
-        // Clear HTML of #prices
-        document.getElementById("prices").innerHTML = ''
-        // Add event listener on #prices to update selected crypto
-        document.getElementById("prices").addEventListener('click', e => {
-            changeCrypto(e.target.textContent.split(':')[0])
-        })
-        // Populate list of crypto names, current price, and change in duration
-        for (const currentPrice of cryptoPrices) {
-            const duration = document.getElementById("duration").value;
-            const changes = await fetch(`http://localhost:8082/changes?cryptoId=${currentPrice['name']}&duration=${duration}`)
+        /**
+         * Populate the #prices element with current crypto prices. 
+         * Shows change in price since #duration
+         */
+        async function loadPrices() {
+            const cryptoPrices = await fetch('http://localhost:8082/prices')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -178,337 +205,363 @@
                 .catch(error => {
                     console.error('Fetch error:', error);
                 });
-            if (changes == undefined) {
-                console.log("Error fetching previous crypto prices")
+
+            if (cryptoPrices == undefined) {
+                console.log("Error fetching main crypto prices")
                 return;
             }
-            const previousPrice = changes[0]
-            const trackerNode = document.createElement("li")
-            trackerNode.id = `prices_${currentPrice['name']}`
-            // Scenario: Price at 5mins ago is 100,000. Price now is 120,000
-            //           100,000 - 120,000 = -20,000. This is wrong, price went up 20,000 
-            //           120,000 - 100,000 = 20,000. This is correct, price went up 20,000 
-            //           priceChange > 0, so up not down 
-            const priceChange = currentPrice['price'] - previousPrice['price']
-            // Set to 'stable', 'up', or 'down' based on price change
-            const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
-            trackerNode.className = upOrDown
-            // Get time since in hours
-            const timeSinceMins = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60)
-            const timeSinceHours = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60)
-            const timeSinceDays = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60 * 24)
-            const timeSince = Math.round(timeSinceMins) < 60 ? `${Math.round(timeSinceMins)} mins` : (Math.round(timeSinceHours) > 24 ? `${Math.round(timeSinceDays)} days` : `${Math.round(timeSinceHours)} hours`) 
-            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} in the last ~${timeSince}`
-            document.getElementById("prices").appendChild(trackerNode)
-        }
-    }
-    /**
-     * Populate #assets with current assets
-     */
-    async function loadAssets() {
-        // Load list of assets
-        const assets = await fetch('http://localhost:8082/assets')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json(); // or response.text() if the response isn't JSON
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-            });
-
-        if (assets == undefined) {
-            console.log("Error fetching asset list")
-            return;
-        }
-        // Load current crypto prices
-        const currentPrices = await fetch('http://localhost:8082/prices')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json(); // or response.text() if the response isn't JSON
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-            });
-        if (currentPrices == undefined) {
-            console.log("Error fetching current crypto prices")
-            return;
-        }
-        // Clear HTML of #assets
-        document.getElementById("assets").innerHTML = ''
-        // Populate list of assets. 
-        for (const asset of assets) {
-            const tr = document.createElement("tr")
-            document.getElementById("assets").appendChild(tr)
-            // Crypto Name
-            const tdName = document.createElement('td')
-            tdName.textContent = asset['name']
-            // Crypto Amount
-            const tdAmount = document.createElement('td')
-            tdAmount.textContent = asset['amount'].toFixed(0)
-            // Purchase Price
-            const tdPurchasePrice = document.createElement('td')
-            tdPurchasePrice.textContent = `$${asset['purchasePrice'].toFixed(2)}`
-            // Purchase Amount
-            const tdPurchaseAmount = document.createElement('td')
-            tdPurchaseAmount.textContent = `$${(asset['purchasePrice'] * asset['amount']).toFixed(2)}`
-            // Purchase Time dd/MM/yyyy HH:mm:SS
-            const tdPurchaseTime = document.createElement('td')
-            tdPurchaseTime.textContent = new Date(asset['purchaseTime'] * 1000).toLocaleString() 
-            // Unrealised profit and loss
-            const tdUnrealisedProfitLoss = document.createElement('td')
-            {
-                if(asset['status'] === 'held') { 
-                    // Purchase Price - current Price
-                    // purchased 120,000, sold 100,000. Unrealised profit for 20,000
-                    const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
-                    const priceChange = currentPrice['price'] - asset['purchasePrice'] 
-                    const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
-                    tdUnrealisedProfitLoss.className = upOrDown
-                    tdUnrealisedProfitLoss.textContent = `${priceChange.toFixed(2)} ($${(priceChange.toFixed(2) * asset['amount'])})`
-                }
+            if (window.SELECTED_CRYPTO === '') {
+                changeCrypto(cryptoPrices[0].name)
             }
-            // Sale Time dd/MM/yyyy HH:mm:SS
-            const tdSaleTime = document.createElement('td')
-            tdSaleTime.textContent = asset['status'] === 'sold' ? new Date(asset['saleTime'] * 1000).toLocaleString() : ''
-            // Sale Price
-            const tdSalePrice = document.createElement('td')
-            tdSalePrice.textContent = asset['status'] === 'sold' ? `$${asset['salePrice']}` : ''
-            // Sale Amount
-            const tdSaleAmount = document.createElement('td')
-            tdSaleAmount.textContent = asset['status'] === 'sold' ? `$${(asset['salePrice'] * asset['amount']).toFixed(2)}` : ''
-            // Realise Profits 
-            const tdRealisedProfitLoss = document.createElement('td')
-            {
-                if(asset['status'] === 'sold') { 
-                    // Purchase Price - Sale Price
-                    // purchased 100,000, sold 120,000. Realised profit for 20,000
-                    const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
-                    const priceChange = asset['salePrice'] - asset['purchasePrice']
-                    const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
-                    tdRealisedProfitLoss.className = upOrDown
-                    tdRealisedProfitLoss.textContent = `${priceChange.toFixed(2)} ($${(priceChange.toFixed(2) * asset['amount'])})`
+            // Clear HTML of #prices
+            document.getElementById("prices").innerHTML = ''
+            // Add event listener on #prices to update selected crypto
+            document.getElementById("prices").addEventListener('click', e => {
+                changeCrypto(e.target.textContent.split(':')[0])
+            })
+            // Populate list of crypto names, current price, and change in duration
+            for (const currentPrice of cryptoPrices) {
+                const duration = document.getElementById("duration").value;
+                const changes = await fetch(`http://localhost:8082/changes?cryptoId=${currentPrice['name']}&duration=${duration}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json(); // or response.text() if the response isn't JSON
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                    });
+                if (changes == undefined) {
+                    console.log("Error fetching previous crypto prices")
+                    return;
                 }
+                const previousPrice = changes[0]
+                const trackerNode = document.createElement("li")
+                trackerNode.id = `prices_${currentPrice['name']}`
+                // Scenario: Price at 5mins ago is 100,000. Price now is 120,000
+                //           100,000 - 120,000 = -20,000. This is wrong, price went up 20,000 
+                //           120,000 - 100,000 = 20,000. This is correct, price went up 20,000 
+                //           priceChange > 0, so up not down 
+                const priceChange = (currentPrice['price'] - previousPrice['price']).toFixed(2)
+                // Set to 'stable', 'up', or 'down' based on price change
+                const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
+                trackerNode.className = upOrDown
+                // Get time since in hours
+                const timeSinceMins = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60)
+                const timeSinceHours = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60)
+                const timeSinceDays = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60 * 24)
+                const timeSince = Math.round(timeSinceMins) < 60 ? `${Math.round(timeSinceMins)} mins` : (Math.round(timeSinceHours) > 24 ? `${Math.round(timeSinceDays)} days` : `${Math.round(timeSinceHours)} hours`)
+                trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} in the last ~${timeSince}`
+                document.getElementById("prices").appendChild(trackerNode)
             }
-            const tdSell = document.createElement('td')
-            const btnSell = document.createElement('button')
-            tdSell.appendChild(btnSell)
-            btnSell.textContent = 'Sell!'
-            btnSell.addEventListener('click', e=> {
-                fetch(`http://localhost:8082/sellAsset?assetId=${asset['_id']}`, {
-                    method: 'POST',
-                }).then(response => {
+        }
+        /**
+         * Populate #assets with current assets
+         */
+        async function loadAssets() {
+            // Load list of assets
+            const assets = await fetch('http://localhost:8082/assets')
+                .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    loadAssets()
+                    return response.json(); // or response.text() if the response isn't JSON
                 })
                 .catch(error => {
-                    alert(`Error: ${error}`);
+                    console.error('Fetch error:', error);
+                });
+
+            if (assets == undefined) {
+                console.log("Error fetching asset list")
+                return;
+            }
+            // Load current crypto prices
+            const currentPrices = await fetch('http://localhost:8082/prices')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json(); // or response.text() if the response isn't JSON
                 })
-            })
-
-            tr.append(tdName, tdAmount, tdPurchasePrice, tdPurchaseAmount, tdPurchaseTime, tdUnrealisedProfitLoss, tdSalePrice, tdSaleAmount, tdSaleTime,  tdRealisedProfitLoss, tdSell)
-
-        }
-    }
-    /**
-     * Draw a line graph representing prices of crypto over time. The time period shown is controlled
-     * by #duration.
-     * Important trading times are shown on the graph
-     */
-    async function drawCryptoPriceGraph(cryptoId) {
-        if(cryptoId === '' || cryptoId == undefined) return;
-        const duration = document.getElementById("duration").value;
-        const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json(); // or response.text() if the response isn't JSON
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-            });
-        if (data == undefined) {
-            console.log("Error fetching previous crypto prices")
-            return;
-        }
-        // Convert UNIX timestamps to JS Date strings and prepare ECharts data
-        const chartData = data.map(item => [
-            item.time * 1000, // ECharts accepts ms timestamps
-            item.price
-        ]);
-        // Initiate chart, determine chart size, and format data
-        const chart = echarts.init(document.getElementById('chart'));
-
-        const prices = data.map(item => item.price);
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
-        // Populate [{yAxis: number, label: {formatter: string} }]
-        const importantTimes = data.map(item => new Date(item.time * 1000))
-            .reduce((prev,curr,idx,arr) => {
-                let label = undefined 
-                // 9:00 am
-                switch (curr.getHours()) { 
-                    case 9: {
-                        label = 'Tokyo open'
-                        break
-                    }
-                    case 10: { 
-                        label = 'Daily candle closes (00:00 UTC)'
-                        break
-                    }
-                    case 11: { 
-                        label = 'China & Hong Kong ramp up'
-                        break
-                    }
-                    case 14: { 
-                        label = 'Asia active, London waking up'
-                        break
-                    }
-                    case 17: { 
-                        label = 'London market opens'
-                        break
-                    }
-                    case 22: { 
-                        label = 'New York open (8:00 AM NY time)'
-                        break
-                    }
-                    case 0: { 
-                        label = 'Overlap of London + New York'
-                        break
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                });
+            if (currentPrices == undefined) {
+                console.log("Error fetching current crypto prices")
+                return;
+            }
+            // Clear HTML of #assets
+            document.getElementById("assets").innerHTML = ''
+            // Populate list of assets. 
+            for (const asset of assets) {
+                const tr = document.createElement("tr")
+                document.getElementById("assets").appendChild(tr)
+                // Crypto Name
+                const tdName = document.createElement('td')
+                tdName.textContent = asset['name']
+                // Crypto Amount
+                const tdAmount = document.createElement('td')
+                tdAmount.textContent = asset['amount'].toFixed(0)
+                // Purchase Price
+                const tdPurchasePrice = document.createElement('td')
+                tdPurchasePrice.textContent = `$${asset['purchasePrice'].toFixed(2)}`
+                // Purchase Amount
+                const tdPurchaseAmount = document.createElement('td')
+                tdPurchaseAmount.textContent = `$${(asset['purchasePrice'] * asset['amount']).toFixed(2)}`
+                // Purchase Time dd/MM/yyyy HH:mm:SS
+                const tdPurchaseTime = document.createElement('td')
+                tdPurchaseTime.textContent = new Date(asset['purchaseTime'] * 1000).toLocaleString()
+                // Unrealised profit and loss
+                const tdUnrealisedProfitLoss = document.createElement('td')
+                {
+                    if (asset['status'] === 'held') {
+                        // Purchase Price - current Price
+                        // purchased 120,000, sold 100,000. Unrealised profit for 20,000
+                        const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
+                        const priceChange = currentPrice['price'] - asset['purchasePrice']
+                        const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
+                        tdUnrealisedProfitLoss.className = upOrDown
+                        tdUnrealisedProfitLoss.textContent = `${priceChange.toFixed(2)} ($${(priceChange.toFixed(2) * asset['amount'])})`
                     }
                 }
-                if(label == undefined) { 
-                    return prev;
-                } else if( prev.filter(x=>x['label']['formatter'] === label).length > 0) { 
-                    return prev;
-                } 
-                return [...prev, { xAxis: curr.getTime(), label: { formatter: label, position:'middle' }} ]
-            }, [])
+                // Sale Time dd/MM/yyyy HH:mm:SS
+                const tdSaleTime = document.createElement('td')
+                tdSaleTime.textContent = asset['status'] === 'sold' ? new Date(asset['saleTime'] * 1000).toLocaleString() : ''
+                // Sale Price
+                const tdSalePrice = document.createElement('td')
+                tdSalePrice.textContent = asset['status'] === 'sold' ? `$${asset['salePrice']}` : ''
+                // Sale Amount
+                const tdSaleAmount = document.createElement('td')
+                tdSaleAmount.textContent = asset['status'] === 'sold' ? `$${(asset['salePrice'] * asset['amount']).toFixed(2)}` : ''
+                // Realise Profits 
+                const tdRealisedProfitLoss = document.createElement('td')
+                {
+                    if (asset['status'] === 'sold') {
+                        // Purchase Price - Sale Price
+                        // purchased 100,000, sold 120,000. Realised profit for 20,000
+                        const currentPrice = currentPrices.filter(x => x.name === asset['name'])[0];
+                        const priceChange = asset['salePrice'] - asset['purchasePrice']
+                        const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
+                        tdRealisedProfitLoss.className = upOrDown
+                        tdRealisedProfitLoss.textContent = `${priceChange.toFixed(2)} ($${(priceChange.toFixed(2) * asset['amount'])})`
+                    }
+                }
+                const tdSell = document.createElement('td')
+                const btnSell = document.createElement('button')
+                tdSell.appendChild(btnSell)
+                btnSell.textContent = 'Sell!'
+                btnSell.addEventListener('click', e => {
+                    fetch(`http://localhost:8082/sellAsset?assetId=${asset['_id']}`, {
+                        method: 'POST',
+                    }).then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        loadAssets()
+                    })
+                        .catch(error => {
+                            alert(`Error: ${error}`);
+                        })
+                })
 
-        // Add a small buffer (e.g., 1% of the range or a fixed value)
-        const range = maxPrice - minPrice;
-        const buffer = range === 0 ? 1 : range * 0.1; // Prevent zero-range issues
-        // Line chart with vertical mark lines
-        const option = {
-            title: {
-                text: `${cryptoId} Stock Price AUD`
-            },
-            tooltip: {
-                trigger: 'axis',
-                formatter: params => {
-                    const date = new Date(params[0].value[0]);
-                    return `
+                tr.append(tdName, tdAmount, tdPurchasePrice, tdPurchaseAmount, tdPurchaseTime, tdUnrealisedProfitLoss, tdSalePrice, tdSaleAmount, tdSaleTime, tdRealisedProfitLoss, tdSell)
+
+            }
+        }
+        /**
+         * Draw a line graph representing prices of crypto over time. The time period shown is controlled
+         * by #duration.
+         * Important trading times are shown on the graph
+         */
+        async function drawCryptoPriceGraph(cryptoId) {
+            if (cryptoId === '' || cryptoId == undefined) return;
+            document.getElementById('chart_title').textContent = `${cryptoId} Coin Price AUD`
+            const duration = document.getElementById("duration").value;
+            const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json(); // or response.text() if the response isn't JSON
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                });
+            if (data == undefined) {
+                console.log("Error fetching previous crypto prices")
+                return;
+            }
+            // Convert UNIX timestamps to JS Date strings and prepare ECharts data
+            const chartData = data.map(item => [
+                item.time * 1000, // ECharts accepts ms timestamps
+                item.price
+            ]);
+            // Initiate chart, determine chart size, and format data
+            const chart = echarts.init(document.getElementById('chart'));
+
+            const prices = data.map(item => item.price);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            // Populate [{yAxis: number, label: {formatter: string} }]
+            const importantTimes = data.map(item => new Date(item.time * 1000))
+                .reduce((prev, curr, idx, arr) => {
+                    let label = undefined
+                    // 9:00 am
+                    switch (curr.getHours()) {
+                        case 9: {
+                            label = 'Tokyo open'
+                            break
+                        }
+                        case 10: {
+                            label = 'Daily candle closes (00:00 UTC)'
+                            break
+                        }
+                        case 11: {
+                            label = 'China & Hong Kong ramp up'
+                            break
+                        }
+                        case 14: {
+                            label = 'Asia active, London waking up'
+                            break
+                        }
+                        case 17: {
+                            label = 'London market opens'
+                            break
+                        }
+                        case 22: {
+                            label = 'New York open (8:00 AM NY time)'
+                            break
+                        }
+                        case 0: {
+                            label = 'Overlap of London + New York'
+                            break
+                        }
+                    }
+                    if (label == undefined) {
+                        return prev;
+                    } else if (prev.filter(x => x['label']['formatter'] === label).length > 0) {
+                        return prev;
+                    }
+                    return [...prev, { xAxis: curr.getTime(), label: { formatter: label, position: 'middle' } }]
+                }, [])
+
+            // Add a small buffer (e.g., 1% of the range or a fixed value)
+            const range = maxPrice - minPrice;
+            const buffer = range === 0 ? 1 : range * 0.1; // Prevent zero-range issues
+            // Line chart with vertical mark lines
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: params => {
+                        const date = new Date(params[0].value[0]);
+                        return `
                     Time: ${date.toLocaleString()}<br>
                     Price: $${params[0].value[1]}
                     `;
-                }
-            },
-            xAxis: {
-                type: 'time',
-                name: 'Time'
-            },
-            yAxis: {
-                type: 'value',
-                name: 'Price (AUD)',
-                min: minPrice - buffer,
-                max: maxPrice + buffer
-            },
-            series: [{
-                type: 'line',
-                data: chartData,
-                name: `${cryptoId} Price`,
-                showSymbol: false,
-                smooth: false,
-                lineStyle: {
-                    width: 2
+                    }
                 },
-                markLine: { 
-                    name: 'test',
-                    symbol: 'none', // optional: no arrow heads
+                xAxis: {
+                    type: 'time',
+                    name: 'Time'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Price (AUD)',
+                    min: minPrice - buffer,
+                    max: maxPrice + buffer
+                },
+                series: [{
+                    type: 'line',
+                    data: chartData,
+                    name: `${cryptoId} Price`,
+                    showSymbol: false,
+                    smooth: false,
                     lineStyle: {
-                        type: 'dashed', // optional: make it dashed
-                        color: 'red'
+                        width: 2
                     },
-                    label: {
-                        formatter: 'Significant: {c}'
-                    },
-                    data: importantTimes,
-                }
-            }]
-        };
-        chart.setOption(option);
-        chart.resize();
-    }
-    // Draw prices
-    drawCryptoPriceGraph(window.SELECTED_CRYPTO)
-    // Load initial prices
-    loadPrices()
-    // Reload prices every 10 seconds
-    setInterval(loadPrices, 10000)
-    // Redraw graph every 10 seconds
-    setInterval(() => {
-        drawCryptoPriceGraph(window.SELECTED_CRYPTO)
-    }, 10000)
-    // Add onchange listener to reload data when #duration changes
-    document.getElementById('duration').addEventListener('change', e => {
-        loadPrices()
-        drawCryptoPriceGraph(window.SELECTED_CRYPTO);
-    })
-    // Load initial prices
-    loadAssets()
-    // Reload prices every 10 seconds
-    setInterval(loadAssets, 10000)
-    
-    // Add Ajax request to #assetForm
-    document.getElementById('assetForm').addEventListener('submit', function (e) {
-        e.preventDefault(); // prevent page reload
-        const formData = new FormData(e.target);
-        // Convert datetime-local into unix epoch
-        formData.set('purchaseTime', new Date(document.querySelector('#assetForm > [name="purchaseTime"]').value).getTime() / 1000)
-        // Set purchase amount to two decimal places
-        formData.set('purchasePrice', formData.get('purchasePrice'))
-        fetch(`http://localhost:8082/assets`, {
-            method: 'POST',
-            body: formData,
-        }).then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            loadAssets()
-        })
-            .catch(error => {
-                alert(`Error: ${error}`);
-            })
-    });
-
-    // Event handler on #assetForm>[name="purchasePrice"] to set to two decimal points
-    document.querySelector('#assetForm > [name="purchasePrice"]').addEventListener('change', e => e.target.value = Number.parseFloat(e.target.value).toFixed(2))
-
-    // Event handler on #btnPrepopulateAssetForm to prepoulate the add asset form with current values
-    // for the selected stock. Essentially a day trade button, but useful for development too. 
-    document.getElementById('btnPrepopulateAssetForm').addEventListener('click', e=> { 
-        const now = new Date();
-        // Set crypto to selected crypto
-        document.querySelector('#assetForm > [name="cryptoId"]').value = window.SELECTED_CRYPTO
-        // Reset purchase price to current maximum. Evilly get current price from stock ticker
-        if(window.SELECTED_CRYPTO){ 
-            document.querySelector('#assetForm > [name="purchasePrice"]').value = document.querySelector(`#prices_${window.SELECTED_CRYPTO}`).textContent.split(':')[1].split(' ')[0]
+                    markLine: {
+                        name: 'test',
+                        symbol: 'none', // optional: no arrow heads
+                        lineStyle: {
+                            type: 'dashed', // optional: make it dashed
+                            color: 'red'
+                        },
+                        label: {
+                            formatter: 'Significant: {c}'
+                        },
+                        data: importantTimes,
+                    }
+                }]
+            };
+            chart.setOption(option);
+            chart.resize();
         }
-        // Set purchase time to now
-        document.querySelector('#assetForm > [name="purchaseTime"]').value = now.getFullYear() + '-' +
-            String(now.getMonth() + 1).padStart(2, '0') + '-' +
-            String(now.getDate()).padStart(2, '0') + 'T' +
-            String(now.getHours()).padStart(2, '0') + ':' +
-            String(now.getMinutes()).padStart(2, '0');
+        // Draw prices
+        drawCryptoPriceGraph(window.SELECTED_CRYPTO)
+        // Load initial prices
+        loadPrices()
+        // Reload prices every 10 seconds
+        setInterval(loadPrices, 10000)
+        // Redraw graph every 10 seconds
+        setInterval(() => {
+            drawCryptoPriceGraph(window.SELECTED_CRYPTO)
+        }, 10000)
+        // Add onchange listener to reload data when #duration changes
+        document.getElementById('duration').addEventListener('change', e => {
+            loadPrices()
+            drawCryptoPriceGraph(window.SELECTED_CRYPTO);
+        })
+        // Load initial prices
+        loadAssets()
+        // Reload prices every 10 seconds
+        setInterval(loadAssets, 10000)
 
-        // Reset amount to 0 and focus
-        document.querySelector('#assetForm > [name="amount"]').value = ''
-        document.querySelector('#assetForm > [name="amount"]').focus()
-    })
-</script>
+        // Add Ajax request to #assetForm
+        document.getElementById('assetForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // prevent page reload
+            const formData = new FormData(e.target);
+            // Convert datetime-local into unix epoch
+            formData.set('purchaseTime', new Date(document.querySelector('#assetForm [name="purchaseTime"]').value).getTime() / 1000)
+            // Set purchase amount to two decimal places
+            formData.set('purchasePrice', formData.get('purchasePrice'))
+            fetch(`http://localhost:8082/assets`, {
+                method: 'POST',
+                body: formData,
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                loadAssets()
+            })
+                .catch(error => {
+                    alert(`Error: ${error}`);
+                })
+        });
+
+        // Event handler on #assetForm>[name="purchasePrice"] to set to two decimal points
+        document.querySelector('#assetForm [name="purchasePrice"]').addEventListener('change', e => e.target.value = Number.parseFloat(e.target.value).toFixed(2))
+
+        // Event handler on #btnPrepopulateAssetForm to prepoulate the add asset form with current values
+        // for the selected stock. Essentially a day trade button, but useful for development too. 
+        document.getElementById('btnPrepopulateAssetForm').addEventListener('click', e => {
+            const now = new Date();
+            // Set crypto to selected crypto
+            document.querySelector('#assetForm [name="cryptoId"]').value = window.SELECTED_CRYPTO
+            // Reset purchase price to current maximum. Evilly get current price from stock ticker
+            if (window.SELECTED_CRYPTO) {
+                document.querySelector('#assetForm [name="purchasePrice"]').value = document.querySelector(`#prices_${window.SELECTED_CRYPTO}`).textContent.split(':')[1].split(' ')[0]
+            }
+            // Set purchase time to now
+            document.querySelector('#assetForm [name="purchaseTime"]').value = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + 'T' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0');
+
+            // Reset amount to 0 and focus
+            document.querySelector('#assetForm [name="amount"]').value = ''
+            document.querySelector('#assetForm [name="amount"]').focus()
+        })
+    </script>
+</body>
