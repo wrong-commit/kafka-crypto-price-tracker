@@ -31,18 +31,71 @@
     <span>Time Period: </span>
     <select id="duration">
         <option value="5m">5 min</option>
-        <option value="1h">1 hour</option>
+        <option value="1h" selected>1 hour</option>
         <!-- 7 * 24  -->
-        <option value="168h" selected>1 week</option>
+        <option value="168h">1 week</option>
         <!-- 30 * 24  -->
         <option value="720h">1 month</option>
         <!-- 365 * 24  -->
-        <option value="8760">1 year</option>
+        <option value="8760h">1 year</option>
     </select>
     <h3>Current Crypto Price</h3>
     <ul id="prices">
     </ul>
-    <div id="chart"></div>
+    <div style="display: flex; flex: 1 0 auto">
+        <div id="chart"></div>
+        <div>
+            <h3>Important Trading Times</h3>
+            <table border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                  <tr>
+                    <th>Time (AEST)</th>
+                    <th>Event / Market Activity</th>
+                    <th>Why It Matters</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>9:00 AM</td>
+                    <td>Tokyo open</td>
+                    <td>Asian session kicks off, liquidity starts rising. Japan news impacts.</td>
+                  </tr>
+                  <tr>
+                    <td>11:00 AM</td>
+                    <td>China & Hong Kong ramp up</td>
+                    <td>Major volume boost — China-based traders start moving big capital.</td>
+                  </tr>
+                  <tr>
+                    <td>3:00 PM</td>
+                    <td>Asia active, London waking up</td>
+                    <td>Liquidity and volatility increase as Europe joins.</td>
+                  </tr>
+                  <tr>
+                    <td>5:00 PM</td>
+                    <td>London market opens</td>
+                    <td>One of the most liquid times of day. Major banks and institutions enter.</td>
+                  </tr>
+                  <tr>
+                    <td>10:00 PM</td>
+                    <td>New York open (8:00 AM NY time)</td>
+                    <td>U.S. traders jump in, massive volume spike often follows.</td>
+                  </tr>
+                  <tr>
+                    <td>12:00 AM</td>
+                    <td>Overlap of London + New York</td>
+                    <td>Peak liquidity globally. High volatility, price action accelerates.</td>
+                  </tr>
+                  <tr>
+                    <td>10:00 AM (next day)</td>
+                    <td>Daily candle closes (00:00 UTC)</td>
+                    <td>Many traders base decisions around this. Often triggers bot activity, new orders.</td>
+                  </tr>
+                </tbody>
+              </table>
+        </div>
+    </div>
+    
+      
     <h2>Asset Tracker</h2>
     <h3>Add New Asset</h3>
     <form id="assetForm" action="/assets" method="POST">
@@ -80,7 +133,7 @@
         console.log(e)
         window.SELECTED_CRYPTO = e
         if (window.SELECTED_CRYPTO !== "") {
-            drawGraph(window.SELECTED_CRYPTO)
+            drawCryptoPriceGraph(window.SELECTED_CRYPTO)
         }
     }
     /**
@@ -102,6 +155,9 @@
         if (cryptoPrices == undefined) {
             console.log("Error fetching main crypto prices")
             return;
+        }
+        if(window.SELECTED_CRYPTO === '') { 
+            changeCrypto(cryptoPrices[0].name)
         }
         // Clear HTML of #prices
         document.getElementById("prices").innerHTML = ''
@@ -136,7 +192,12 @@
             // Set to 'stable', 'up', or 'down' based on price change
             const upOrDown = priceChange === 0 ? 'stable' : (priceChange > 0 ? "up" : "down")
             trackerNode.className = upOrDown
-            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} at ${new Date(previousPrice['time'] * 1000).toLocaleString()}`
+            // Get time since in hours
+            const timeSinceMins = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60)
+            const timeSinceHours = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60)
+            const timeSinceDays = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60 * 24)
+            const timeSince = Math.round(timeSinceMins) < 60 ? `${Math.round(timeSinceMins)} mins` : (Math.round(timeSinceHours) > 24 ? `${Math.round(timeSinceDays)} days` : `${Math.round(timeSinceHours)} hours`) 
+            trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} in the last ~${timeSince}`
             document.getElementById("prices").appendChild(trackerNode)
         }
     }
@@ -249,9 +310,10 @@
     }
     /**
      * Draw a line graph representing prices of crypto over time. The time period shown is controlled
-     * by the duration  
+     * by #duration.
+     * Important trading times are shown on the graph
      */
-    async function drawGraph(cryptoId) {
+    async function drawCryptoPriceGraph(cryptoId) {
         const duration = document.getElementById("duration").value;
         const data = await fetch(`http://localhost:8082/changes?cryptoId=${cryptoId}&duration=${duration}&all=true`)
             .then(response => {
@@ -278,11 +340,53 @@
         const prices = data.map(item => item.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
+        // Populate [{yAxis: number, label: {formatter: string} }]
+        const importantTimes = data.map(item => new Date(item.time * 1000))
+            .reduce((prev,curr,idx,arr) => {
+                let label = undefined 
+                // 9:00 am
+                switch (curr.getHours()) { 
+                    case 9: {
+                        label = 'Tokyo open'
+                        break
+                    }
+                    case 10: { 
+                        label = 'Daily candle closes (00:00 UTC)'
+                        break
+                    }
+                    case 11: { 
+                        label = 'China & Hong Kong ramp up'
+                        break
+                    }
+                    case 14: { 
+                        label = 'Asia active, London waking up'
+                        break
+                    }
+                    case 17: { 
+                        label = 'London market opens'
+                        break
+                    }
+                    case 22: { 
+                        label = 'New York open (8:00 AM NY time)'
+                        break
+                    }
+                    case 0: { 
+                        label = 'Overlap of London + New York'
+                        break
+                    }
+                }
+                if(label == undefined) { 
+                    return prev;
+                } else if( prev.filter(x=>x['label']['formatter'] === label).length > 0) { 
+                    return prev;
+                } 
+                return [...prev, { xAxis: curr.getTime(), label: { formatter: label, position:'middle' }} ]
+            }, [])
 
         // Add a small buffer (e.g., 1% of the range or a fixed value)
         const range = maxPrice - minPrice;
         const buffer = range === 0 ? 1 : range * 0.1; // Prevent zero-range issues
-
+        // Line chart with vertical mark lines
         const option = {
             title: {
                 text: `${cryptoId} Stock Price`
@@ -315,10 +419,23 @@
                 smooth: false,
                 lineStyle: {
                     width: 2
+                },
+                markLine: { 
+                    name: 'test',
+                    // symbol: 'none', // optional: no arrow heads
+                    lineStyle: {
+                        type: 'dashed', // optional: make it dashed
+                        color: 'red'
+                    },
+                    label: {
+                        formatter: 'Significant: {c}'
+                    },
+                    data: importantTimes,
                 }
             }]
         };
         chart.setOption(option);
+        chart.resize();
     }
     // Load initial prices
     loadPrices()
@@ -327,13 +444,13 @@
     // Redraw graph every 10 seconds
     setInterval(() => {
         if (window.SELECTED_CRYPTO !== "") {
-            drawGraph(window.SELECTED_CRYPTO)
+            drawCryptoPriceGraph(window.SELECTED_CRYPTO)
         }
     }, 10000)
     // Add onchange listener to reload data when #duration changes
     document.getElementById('duration').addEventListener('change', e => {
         loadPrices()
-        drawGraph(window.SELECTED_CRYPTO);
+        drawCryptoPriceGraph(window.SELECTED_CRYPTO);
     })
     // Load initial prices
     loadAssets()
