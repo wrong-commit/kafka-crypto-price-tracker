@@ -1,7 +1,12 @@
 # Crypto Price Tracker
 
-Crypto Coin price tracker and Profit Loss Estimator. Built with GoLang on Kafka and MongoDB. 
-Multiple consumers read from two partitions on a single topic. 
+Crypto Coin price tracker and Profit and Loss Tracker. Built with GoLang on Kafka and MongoDB.
+Features: 
+- golang microservice for publishing Crypto price messages
+- golang microservices for consuming crypto price changes messages and updating the database
+- golang API for serving front end requests
+- simple HTML front end for tracking profit and loss
+Multiple consumers read from two partitions on a single topic.
 
 ## Example Screenshot
 <!-- ![Alt text](/screenshots/alpha.png "AlpBha Version") -->
