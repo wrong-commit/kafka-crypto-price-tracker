@@ -10,7 +10,7 @@ Multiple consumers read from two partitions on a single topic.
 
 ## Example Screenshot
 <!-- ![Alt text](/screenshots/alpha.png "AlpBha Version") -->
-![Alt text](/screenshots/beta-2.png "Beta Version")
+![Alt text](/screenshots/beta-3.png "Beta Version")
 
 # Startup
 Run `docker compose build && docker compose up` to start MongoDB, Kafka, Golang consumer and producers, and Kafka monitoring tools
