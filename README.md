@@ -10,7 +10,7 @@ Crypto Coin price tracker and Profit and Loss Tracker. Built with GoLang on Kafk
 
 ## Screenshot
 <!-- ![Alt text](/screenshots/alpha.png "AlpBha Version") -->
-![Alt text](/screenshots/beta-5.png "Beta Version")
+![Alt text](/screenshots/beta-5-better.png "Beta Version")
 
 ## 
 

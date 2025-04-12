@@ -446,7 +446,7 @@ func main() {
 	mux.Handle("/prices", withCORS(http.HandlerFunc(currentPriceHandler)))
 	mux.Handle("/changes", withCORS(http.HandlerFunc(priceChangeHandler)))
 	mux.Handle("/assets", withCORS(http.HandlerFunc(assetHandler)))
-	mux.Handle("/sellAsset", withCORS(http.HandlerFunc(sellAssetHandler)))
+	mux.Handle("/assets/sell", withCORS(http.HandlerFunc(sellAssetHandler)))
 	// Start server 
 	fmt.Println("Starting server at :8082")
 	err := http.ListenAndServe(":8082", mux)
