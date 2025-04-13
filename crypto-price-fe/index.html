@@ -5,15 +5,81 @@
     <!-- Colour ticker styles -->
     <style>
         .up {
-            color: green
+            color: var(--green)
         }
 
         .down {
-            color: crimson
+            color: var(--red)
         }
 
         .stable {
-            color: cornflowerblue
+            color: var(--blue)
+        }
+
+        body {
+            padding-top: 2ch;
+            padding-left: 1ch;
+            padding-right: 1ch;
+            padding-bottom: 2ch;
+        }
+
+        .box-padding {
+            padding-top: 2ch;
+            padding-left: 1ch;
+            padding-right: 1ch;
+            padding-bottom: 2ch;
+        }
+    </style>
+    <!-- Catppuccin theme -->
+    <style>
+        :root {
+            /* Theme colours */
+            --rosewater: #f5e0dc;
+            --flamingo: #f2cdcd;
+            --pink: #f5c2e7;
+            --mauve: #cba6f7;
+            --red: #f38ba8;
+            --maroon: #eba0ac;
+            --peach: #fab387;
+            --yellow: #f9e2af;
+            --green: #a6e3a1;
+            --teal: #94e2d5;
+            --sky: #89dceb;
+            --sapphire: #74c7ec;
+            --blue: #89b4fa;
+            --lavender: #b4befe;
+            --text: #cdd6f4;
+            --subtext1: #bac2de;
+            --subtext0: #a6adc8;
+            --overlay2: #9399b2;
+            --overlay1: #7f849c;
+            --overlay0: #6c7086;
+            --surface2: #585b70;
+            --surface1: #45475a;
+            --surface0: #313244;
+            --base: #1e1e2e;
+            --mantle: #181825;
+            --crust: #11111b;
+            /* Style CSS library */
+            --background0: var(--base);
+            --background1: var(--surface0);
+            --background2: var(--surface1);
+            --background3: var(--surface2);
+            --foreground0: var(--text);
+            --foreground1: var(--subtext1);
+            --foreground2: var(--overlay2);
+        }
+
+        /* Style tables */
+        table,
+        td,
+        th {
+            border-color: var(--background3);
+            text-align: center;
+        }
+
+        table td>button {
+            width: 100%;
         }
     </style>
     <!-- Include apache echarts -->
@@ -22,7 +88,9 @@
     <style>
         #chart {
             width: 100%;
+            /* min-width: 45vw; */
             height: 500px;
+            display: block;
         }
     </style>
     <!-- Font for Headers -->
@@ -30,7 +98,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet">
-    <style>
+    <!-- <style>
         /* Style for monospace font */
         .space-mono-regular {
             font-family: "Space Mono", monospace;
@@ -50,17 +118,49 @@
         #duration {
             padding-left: 1rem;
         }
-    </style>
+    </style> -->
+    <!-- <style>
+        @layer base, utils, components;
+      </style>
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@webtui/css@0.0.0/dist/base.css"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@webtui/css@0.0.0/dist/components/button.css"
+      /> -->
+
+    <!-- <style>
+        :root {
+        /* Default background color */
+        --background0: #2e3440;
+        /* Background levels 1-3 */
+        --background1: #3b4252;
+        --background2: #434c5e;
+        --background3: #4c566a;
+
+        /* Default foreground color */
+        --foreground0: #d8dee9;        
+        /* Foreground levels 1-2 */
+        --foreground1: #e5e9f0;
+        --foreground2: #eceff4;
+    }
+    </style> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@webtui/css/dist/full.css" />
 </head>
 
-<body style="background-color: oklch(92.9% 0.013 255.508);">
+<body class="dark">
     <div>
-        <h2 class="space-mono-regular">Crypto Price Tracker</h2>
-        <div class="box">
-            <h3 class="space-mono-regular" style="display: inline-block;">Coin Prices (via Coinbase)</h3>
+        <!-- Top div containing page header and  -->
+        <article box-="square" style="--box-border-color: var(--background3);">
+            <span style="display: inline; font-weight: bold; padding-left: 1ch;">Crypto Price Tracker</span>
+            <span>Display Interval: </span>
             <select id="duration">
                 <option value="5m">5 min</option>
-                <option value="1h" selected>1 hour</option>
+                <option value="1h">1 hour</option>
+                <!-- 24  -->
+                <option value="24h" selected>1 day</option>
                 <!-- 7 * 24  -->
                 <option value="168h">1 week</option>
                 <!-- 30 * 24  -->
@@ -68,74 +168,92 @@
                 <!-- 365 * 24  -->
                 <option value="8760h">1 year</option>
             </select>
-            <hr />
-            <ul id="prices">
-            </ul>
-        </div>
-        <br />
-        <div class="box">
-            <h3 id="chart_title" class="space-mono-regular"></h3>
-            <hr />
-            <div style="display: flex; flex: 1 0 auto">
-                <div id="chart"></div>
-                <div>
-                    <table border="1" cellpadding="10" cellspacing="0">
-                        <thead class="space-mono-regular">
-                            <tr>
-                                <th>Time (AEST)</th>
-                                <th>Event / Market Activity</th>
-                                <th>Why It Matters</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>9:00 AM</td>
-                                <td>Tokyo open</td>
-                                <td>Asian session kicks off, liquidity starts rising. Japan news impacts.</td>
-                            </tr>
-                            <tr>
-                                <td>10:00 AM (next day)</td>
-                                <td>Daily candle closes (00:00 UTC)</td>
-                                <td>Many traders base decisions around this. Often triggers bot activity, new orders.
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>11:00 AM</td>
-                                <td>China & Hong Kong ramp up</td>
-                                <td>Major volume boost — China-based traders start moving big capital.</td>
-                            </tr>
-                            <tr>
-                                <td>3:00 PM</td>
-                                <td>Asia active, London waking up</td>
-                                <td>Liquidity and volatility increase as Europe joins.</td>
-                            </tr>
-                            <tr>
-                                <td>5:00 PM</td>
-                                <td>London market opens</td>
-                                <td>One of the most liquid times of day. Major banks and institutions enter.</td>
-                            </tr>
-                            <tr>
-                                <td>10:00 PM</td>
-                                <td>New York open (8:00 AM NY time)</td>
-                                <td>U.S. traders jump in, massive volume spike often follows.</td>
-                            </tr>
-                            <tr>
-                                <td>12:00 AM</td>
-                                <td>Overlap of London + New York</td>
-                                <td>Peak liquidity globally. High volatility, price action accelerates.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        </article>
+        <div style="display: flex; flex-direction: row">
+            <article box-="square contain:!top" style="--box-border-color: var(--background3);">
+                <header is-="row" align-="between">
+                    <div is-="badge" variant-="background0">
+                        <h1>Coin Prices (via Coinbase)</h1>
+                    </div>
+                </header>
+                <ul id="prices">
+                    <!-- <li>BTC:XXXXXX.XX - was YYYYYY.YY up by ZZ.ZZ in the last ~5 mins</li> -->
+                    <!-- <li>LTC:XXXXXX.XX - was YYYYYY.YY down by ZZ.ZZ in the last ~24 hours</li> -->
+                </ul>
+            </article>
+            <article box-="square contain:!top" style="--box-border-color: var(--background3);">
+                <header is-="row" align-="between">
+                    <div is-="badge" variant-="background0">
+                        <h1 id="chart_title">Crypto Coin Price AUD</h1>
+                    </div>
+                </header>
+                <div style="display: flex; flex: 1 0 auto; flex-wrap: wrap;" class="box-padding">
+                    <div id="chart"></div>
+                    <div>
+                        <table border="1" cellpadding="10" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Time (AEST)</th>
+                                    <th>Event / Market Activity</th>
+                                    <th>Why It Matters</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>9:00 AM</td>
+                                    <td>Tokyo open</td>
+                                    <td>Asian session kicks off, liquidity starts rising. Japan news impacts.</td>
+                                </tr>
+                                <tr>
+                                    <td>10:00 AM (next day)</td>
+                                    <td>Daily candle closes (00:00 UTC)</td>
+                                    <td>Many traders base decisions around this. Often triggers bot activity, new
+                                        orders.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>11:00 AM</td>
+                                    <td>China & Hong Kong ramp up</td>
+                                    <td>Major volume boost — China-based traders start moving big capital.</td>
+                                </tr>
+                                <tr>
+                                    <td>3:00 PM</td>
+                                    <td>Asia active, London waking up</td>
+                                    <td>Liquidity and volatility increase as Europe joins.</td>
+                                </tr>
+                                <tr>
+                                    <td>5:00 PM</td>
+                                    <td>London market opens</td>
+                                    <td>One of the most liquid times of day. Major banks and institutions enter.</td>
+                                </tr>
+                                <tr>
+                                    <td>10:00 PM</td>
+                                    <td>New York open (8:00 AM NY time)</td>
+                                    <td>U.S. traders jump in, massive volume spike often follows.</td>
+                                </tr>
+                                <tr>
+                                    <td>12:00 AM</td>
+                                    <td>Overlap of London + New York</td>
+                                    <td>Peak liquidity globally. High volatility, price action accelerates.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            </article>
         </div>
-        <h2 class="space-mono-regular">Asset Tracker</h2>
-        <div class="box">
-            <h3 class="space-mono-regular">Add New Asset</h3>
-            <form id="assetForm" action="/assets" method="POST" style="display: flex; justify-content: space-around;">
+        <article box-="square contain:!top" style="--box-border-color: var(--background3);">
+            <header is-="row" align-="between">
+                <div is-="badge" variant-="background0">
+                    <h1>Asset Tracker</h1>
+                </div>
+            </header>
+            <h2>Add New Asset</h2>
+            <form id="assetForm" action="/assets" method="POST"
+                style="display: flex; padding: 1ch; justify-content: space-between;">
                 <div>
                     <label for="cryptoId">Crypto Name</label>
-                    <input name="cryptoId" />
+                    <input style="width: 6ch;" name="cryptoId" />
                 </div>
                 <div>
                     <label for="amount">Amount</label>
@@ -150,19 +268,16 @@
                     <input name="purchaseTime" type="datetime-local" />
                 </div>
                 <div>
-                    <button id="btnAddAsset" type="submit">Add Asset</button>
-                </div> 
+                    <button id="btnAddAsset" style="background-color: var(--green);" type="submit">Add Asset</button>
+                </div>
                 <div>
-                    <button id="btnPrepopulateAssetForm" type="button">Prepoulate Buy Now</button>
+                    <button id="btnPrepopulateAssetForm" style="background-color: var(--peach);"
+                        type="button">Prepoulate Buy Now</button>
                 </div>
             </form>
-            <br />
-        </div>
-        <br />
-        <div class="box">
-            <h3 class="space-mono-regular">Profit Tracked Assets</h3>
+            <h2>Profit Tracked Assets</h2>
             <table border="1" cellpadding="10" cellspacing="0" width="100%">
-                <thead class="space-mono-regular">
+                <thead>
                     <th>Coin Name</th>
                     <th>Amount</th>
                     <th>Purchase Price</th>
@@ -179,8 +294,7 @@
                     <!-- Generated by loadAssets() -->
                 </tbody>
             </table>
-            <br>
-        </div>
+        </article>
     </div>
 
     <script>
@@ -252,7 +366,7 @@
                 const timeSinceHours = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60)
                 const timeSinceDays = (new Date(Date.now()) - new Date(previousPrice['time'] * 1000)) / (1000 * 60 * 60 * 24)
                 const timeSince = Math.round(timeSinceMins) < 60 ? `${Math.round(timeSinceMins)} mins` : (Math.round(timeSinceHours) > 24 ? `${Math.round(timeSinceDays)} days` : `${Math.round(timeSinceHours)} hours`)
-                trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - was ${previousPrice['price']} ${upOrDown} by ${priceChange} in the last ~${timeSince}`
+                trackerNode.textContent = `${currentPrice['name']}:${currentPrice['price']} - ${upOrDown} by ${priceChange} in ~${timeSince}`
                 document.getElementById("prices").appendChild(trackerNode)
             }
         }
@@ -463,11 +577,11 @@
                 },
                 xAxis: {
                     type: 'time',
-                    name: 'Time'
+                    // name: 'Time'
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'Price (AUD)',
+                    // name: 'Price (AUD)',
                     min: minPrice - buffer,
                     max: maxPrice + buffer
                 },
