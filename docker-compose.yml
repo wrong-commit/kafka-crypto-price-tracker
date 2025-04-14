@@ -24,6 +24,17 @@ services:
             MONGO_URL: "mongodb://root:example@mongo:27017"
         ports: 
             - 8082:8082
+    # API service for reading from MongoDB
+    crypto-price-database-migrator:
+        container_name: crypto-price-database-migrator
+        image: crypto-price-database-migrator
+        build:
+            context: ./crypto-price-database-migrator
+            dockerfile: Dockerfile
+        depends_on:
+            - mongo
+        environment:
+            MONGO_DB_URL: "mongodb://root:example@mongo:27017/crypto?authSource=admin"
     # Services for reading each Crypto Stock price
     btc-crypto-price-producer:
         container_name: btc-crypto-price-producer
@@ -63,6 +74,19 @@ services:
         environment:
             KAFKA_SERVER: "kafka-1:19091"
             CRYPTO_ID: "XRP"
+            MONGO_URL: "mongodb://root:example@mongo:27017/"
+    xmr-crypto-price-producer:
+        container_name: xmr-crypto-price-producer
+        image: crypto-price-producer
+        build:
+            context: ./crypto-price-producer
+            dockerfile: Dockerfile
+        depends_on:
+            kafka-1:
+                condition: service_healthy
+        environment:
+            KAFKA_SERVER: "kafka-1:19091"
+            CRYPTO_ID: "XMR"
             MONGO_URL: "mongodb://root:example@mongo:27017/"
     # Receives Kafka messages and updates MongoDB
     crypto-price-change-tracker:

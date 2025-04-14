@@ -76,7 +76,34 @@ func lookupNewCryptoPriceGarbage(cryptoId string) float32 {
 	return float32(modifier) * float32(randomNumber) + basePrice
 }
 
+type CryptoCompareResponse struct { 
+	AUD float32 `json:"AUD"`
+}
+func lookupXmrCryptoPrice() float32 { 
+	url := fmt.Sprintf("https://min-api.cryptocompare.com/data/price?fsym=XMR&tsyms=%s",currency)
+	
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return -1
+	}
+	defer resp.Body.Close()
+
+	var post CryptoCompareResponse
+	err = json.NewDecoder(resp.Body).Decode(&post)
+	if err != nil {
+		fmt.Println("Decode error:", err)
+		return -1
+	}
+	
+	fmt.Println("Response:", post.AUD)
+	return float32(post.AUD)
+}
+
 func lookupNewCryptoPrice(cryptoId string) float32 { 
+	if cryptoId == "XMR" { 
+		return lookupXmrCryptoPrice()
+	}
 	price, err := getCoinbasePrice(cryptoId)
 	if err != nil {
 		fmt.Printf("Error retrieving %s price: %v\n", cryptoId, err)
@@ -165,9 +192,11 @@ func main() {
 				Name: cryptoId,
 				Price: cryptoPrice,
 			}
+			insertCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 			// Insert record with current price
 			collection := client.Database("crypto").Collection("prices")
-			_, err = collection.InsertOne(ctx, &createNewPrice)
+			_, err = collection.InsertOne(insertCtx, &createNewPrice)
 			if err != nil {
 				fmt.Printf("Insert new `prices` document failed: %v\n", err)
 			}else { 

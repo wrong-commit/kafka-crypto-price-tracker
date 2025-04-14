@@ -1,0 +1,24 @@
+[
+	{
+		"create": "prices",
+		"validator": {
+			"$jsonSchema": {
+				"bsonType": "object",
+				"required": [
+					"name",
+					"price"
+				],
+				"properties": {
+					"name": {
+						"bsonType": "string",
+						"description": "must be a string and is required"
+					},
+					"price": {
+						"bsonType": "double",
+						"description": "must be an double"
+					}
+				}
+			}
+		}
+	}
+]

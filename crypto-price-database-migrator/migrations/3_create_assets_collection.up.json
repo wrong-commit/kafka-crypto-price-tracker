@@ -1,0 +1,50 @@
+[
+	{
+		"create": "assets",
+		"validator": {
+			"$jsonSchema": {
+				"bsonType": "object",
+				"required": [
+					"name",
+					"amount",
+					"purchasePrice",
+					"purchaseTime",
+					"status",
+					"salePrice",
+					"saleTime"
+				],
+				"properties": {
+					"name": {
+						"bsonType": "string",
+						"description": "must be a string and is required"
+					},
+					"amount": {
+						"bsonType": "double",
+						"description": "must be an double"
+					},
+					"purchasePrice": {
+						"bsonType": "double",
+						"description": "must be an double"
+					},
+					"purchaseTime": {
+						"bsonType": "double",
+						"description": "must be an double"
+					},
+					"salePrice": {
+						"bsonType": "double",
+						"description": "must be an double"
+					},
+					"saleTime": {
+						"bsonType": "double",
+						"description": "must be an double"
+					},
+					"status": {
+						"bsonType": "string",
+                        "pattern": "held|sold",
+						"description": "must be an string"
+					}
+				}
+			}
+		}
+	}
+]
