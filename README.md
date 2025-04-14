@@ -3,6 +3,7 @@
 Crypto Coin price tracker and Profit and Loss Tracker. Built with GoLang on Kafka and MongoDB.  
 
 ## Features 
+- golang microservice for updating the database schema
 - golang microservice for publishing Crypto price messages
 - golang microservices for consuming crypto price changes messages and updating the database
 - golang API for serving front end requests
@@ -11,8 +12,6 @@ Crypto Coin price tracker and Profit and Loss Tracker. Built with GoLang on Kafk
 ## Screenshot
 <!-- ![Alt text](/screenshots/alpha.png "AlpBha Version") -->
 ![Alt text](/screenshots/beta-6.png "Beta Version")
-
-## 
 
 ## How TOs
 

@@ -1,3 +1,7 @@
+# MongoDB 
+
+A MongoDB database exists to track all crypto prices and asset purchases and sales over time. 
+Database migrations are performed on startup by the `golang-migrate/migrate` package. 
 # List of Mongo collections
 All collections in the `crypto` database. All prices are in AUD, and all times are Unix Epochs
 ## prices
