@@ -1,8 +1,8 @@
 package main
 
 import (
-    "fmt"
     "os"
+	"log"
 
     "github.com/golang-migrate/migrate/v4"
     _ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -22,14 +22,14 @@ func main() {
         mongoDbUrl,
     )
     if err != nil {
-        fmt.Printf("Could not create migration connection to mongo DB %v\n", err)
+        log.Printf("Could not create migration connection to mongo DB %v\n", err)
         panic(err)
     }
 
     if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-        fmt.Printf("Could not apply migrations to mongo DB %v\n", err)
+        log.Printf("Could not apply migrations to mongo DB %v\n", err)
         panic(err)
     }
 
-    fmt.Println("Migrations applied successfully.")
+    log.Println("Migrations applied successfully.")
 }

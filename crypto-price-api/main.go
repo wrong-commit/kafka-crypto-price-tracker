@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"time"
 	"encoding/json"
+	"log"
+
+	"crypto-price-api/metrics"
 
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
@@ -73,11 +76,14 @@ type AssetVM struct {
 // Return the current price of a crypto. 
 // Returns CurrentPriceResponseVM
 func currentPriceHandler(w http.ResponseWriter, r *http.Request) {
+	requestStartTime := time.Now()
+	metrics.HTTPRequestCounter.WithLabelValues("/assets").Inc()
 	// Connect to MongoDB 
 	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(connectCtx, options.Client().ApplyURI(MongoUrl))
     if err != nil {
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
         panic(err)
     }
     defer client.Disconnect(connectCtx)
@@ -92,8 +98,10 @@ func currentPriceHandler(w http.ResponseWriter, r *http.Request) {
 	var results []CurrentPriceResponseVM
     cursor, err := collection.Find(findCtx, bson.M{})
     if err != nil {
-        fmt.Println("No crypto prices found:", err)
+        log.Println("No crypto prices found:", err)
 		fmt.Fprintf(w, "[]")
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
+		return
     }
 	// Convert DB response to json view model
     for cursor.Next(findCtx) {
@@ -114,13 +122,17 @@ func currentPriceHandler(w http.ResponseWriter, r *http.Request) {
 		// Encode the struct to JSON and write to response
 		json.NewEncoder(w).Encode(results)	
 	}
+	metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 }
 // Handle to look up price changes within a time period and return a list of all prices or the earliest price
 // Returns: []CryptoPriceChangeVM
 func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
+	requestStartTime := time.Now()
+	metrics.HTTPRequestCounter.WithLabelValues("/assets").Inc()
 	// Get coin from query params
 	cryptoId := r.URL.Query().Get("cryptoId")
 	if cryptoId == "" {
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 		panic("No crypto ID provided")
 	}
 	// Get duration from query params
@@ -140,6 +152,7 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	client, err := mongo.Connect(connectCtx, options.Client().ApplyURI(MongoUrl))
     if err != nil {
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
         panic(err)
     }
     defer client.Disconnect(connectCtx)
@@ -155,6 +168,7 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 	// Calculate change in price from queried period
 	duration, err := time.ParseDuration(durationStr)
     if err != nil {
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 		panic(err)
     }
 	sevenDaysAgo := time.Now().Add(-duration)
@@ -172,8 +186,9 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
     cursor, err := collection.Find(findCtx, filter, opts)
 	// Return [] on error
     if err != nil {
-        fmt.Println("No crypto prices found:", err)
+        log.Println("No crypto prices found:", err)
 		json.NewEncoder(w).Encode(results)	
+		return
 	}
 	// Convert DB response to json view model. Either return array with single earliest element, or all array of all elements
 	if returnAllPrices { 
@@ -212,11 +227,14 @@ func priceChangeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Return JSON array to user
 	json.NewEncoder(w).Encode(results)	
+	metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 }
 // Handle to look up assets sorted by purchase time
 // GET /assets
 // Returns: []AssetVM
 func findAssetsHandler(w http.ResponseWriter, r *http.Request) { 
+	requestStartTime := time.Now()
+	metrics.HTTPRequestCounter.WithLabelValues("/assets").Inc()
 	// Get coin from query params
 	// cryptoId := r.URL.Query().Get("cryptoId")
 	// if cryptoId == "" {
@@ -228,6 +246,7 @@ func findAssetsHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	client, err := mongo.Connect(connectCtx, options.Client().ApplyURI(MongoUrl))
     if err != nil {
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
         panic(err)
     }
     defer client.Disconnect(connectCtx)
@@ -251,8 +270,10 @@ func findAssetsHandler(w http.ResponseWriter, r *http.Request) {
     cursor, err := collection.Find(findCtx, filter, opts)
 	// Return [] on error
     if err != nil {
-        fmt.Println("Error searching for assets:", err)
+        log.Println("Error searching for assets:", err)
 		json.NewEncoder(w).Encode(results)	
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
+		return
 	}
 	// Return many elements.
 	for cursor.Next(findCtx) {
@@ -275,6 +296,7 @@ func findAssetsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Return asssets
 	json.NewEncoder(w).Encode(results)	
+	metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 }
 // Create a new asset based on provided form data. 
 // Required fields are:
@@ -285,6 +307,9 @@ func findAssetsHandler(w http.ResponseWriter, r *http.Request) {
 // 		
 // POST /assets
 func createAssetHandler(w http.ResponseWriter, r *http.Request) { 
+	requestStartTime := time.Now()
+	metrics.HTTPRequestCounter.WithLabelValues("/assets").Inc()
+
 	// Limit request size to 10MB (more than enough!)
 	r.ParseMultipartForm(10 << 20) // 10MB
 	
@@ -297,11 +322,13 @@ func createAssetHandler(w http.ResponseWriter, r *http.Request) {
 	amountF32, err := strconv.ParseFloat(amount, 32)
 	if err != nil {
         fmt.Printf("Error converting string to int:", err)
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 		return
 	}
 	purchaseTimeF32, err := strconv.ParseFloat(purchaseTime, 32)
 	if err != nil {
         fmt.Printf("Error converting string to int:", err)
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 		return
 	}
 	// Specially handle purchaseTimeF32, incase its been incorrectly sent by the FE JS 
@@ -311,6 +338,7 @@ func createAssetHandler(w http.ResponseWriter, r *http.Request) {
 	purchasePriceF32, err := strconv.ParseFloat(purchasePrice, 32)
 	if err != nil {
         fmt.Printf("Error converting string to int:", err)
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 		return
 	}
 	// Connect to MongoDB 
@@ -318,11 +346,12 @@ func createAssetHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	client, err := mongo.Connect(connectCtx, options.Client().ApplyURI(MongoUrl))
     if err != nil {
-        panic(err)
+		metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
+		panic(err)
     }
     defer client.Disconnect(connectCtx)
 	// Create new asset
-	// fmt.Println("Creating new `assets` document for " + cryptoId)
+	// log.Println("Creating new `assets` document for " + cryptoId)
 	newAsset := AssetDB{
 		Name: cryptoId,
 		Amount: float32(amountF32),
@@ -342,6 +371,7 @@ func createAssetHandler(w http.ResponseWriter, r *http.Request) {
 	}else { 
 		fmt.Printf("Created new asset [%s] at $%f AUD\n", newAsset.Name, newAsset.PurchasePrice)
 	}
+	metrics.HTTPRequestDuration.Observe(time.Since(requestStartTime).Seconds())
 }
 // Handler to mark asset as sold
 func sellAssetHandler(w http.ResponseWriter, r *http.Request) {
@@ -433,6 +463,10 @@ func withCORS(next http.Handler) http.Handler {
 }
 
 func main() {
+	// Initialize context for killing application
+	_, cancel := context.WithCancel(context.Background())
+	// Initialize prometheus metrics and expose on separate port
+	metrics.Init(cancel)
 	// Lookup necessary environment variables
 	// Example: "mongodb://localhost:27017"
 	didFind := false
@@ -448,9 +482,9 @@ func main() {
 	mux.Handle("/assets", withCORS(http.HandlerFunc(assetHandler)))
 	mux.Handle("/assets/sell", withCORS(http.HandlerFunc(sellAssetHandler)))
 	// Start server 
-	fmt.Println("Starting server at :8082")
+	log.Println("Starting server at :8082")
 	err := http.ListenAndServe(":8082", mux)
 	if err != nil {
-		fmt.Println("Error starting server:", err)
+		log.Println("Error starting server:", err)
 	}
 }

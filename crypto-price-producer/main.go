@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"os"
-	"fmt"
 	"time"
+	"fmt"
+	"log"
 
 	"net/http"
 	"encoding/json"
@@ -12,6 +13,8 @@ import (
 	
 	"math/rand"
 	"math"
+
+	"crypto-price-producer/metrics" 
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	
@@ -56,10 +59,10 @@ func lookupOldCryptoPrice(cryptoId string, client *mongo.Client) (float32, error
 	var result CryptoPriceDB
     err := collection.FindOne(ctx, filter).Decode(&result)
     if err != nil {
-        fmt.Println("Crypto " + cryptoId + " not found:", err)
+        log.Println("Crypto " + cryptoId + " not found:", err)
 		return -1, err
     }
-	fmt.Printf("Found crypto: %+v\n", result)
+	log.Printf("Found crypto: %+v\n", result)
 	return result.Price, nil 
 }
 
@@ -84,7 +87,7 @@ func lookupXmrCryptoPrice() float32 {
 	
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Println("Error:", err)
 		return -1
 	}
 	defer resp.Body.Close()
@@ -92,11 +95,11 @@ func lookupXmrCryptoPrice() float32 {
 	var post CryptoCompareResponse
 	err = json.NewDecoder(resp.Body).Decode(&post)
 	if err != nil {
-		fmt.Println("Decode error:", err)
+		log.Println("Decode error:", err)
 		return -1
 	}
 	
-	fmt.Println("Response:", post.AUD)
+	log.Println("Response:", post.AUD)
 	return float32(post.AUD)
 }
 
@@ -106,7 +109,7 @@ func lookupNewCryptoPrice(cryptoId string) float32 {
 	}
 	price, err := getCoinbasePrice(cryptoId)
 	if err != nil {
-		fmt.Printf("Error retrieving %s price: %v\n", cryptoId, err)
+		log.Printf("Error retrieving %s price: %v\n", cryptoId, err)
 		return -1
 	}
 	// Round to lowest two decimal places
@@ -137,6 +140,11 @@ func getCoinbasePrice(symbol string,) (float64, error) {
 }
 
 func main() {
+	// Initialize context for killing application
+	mainCtx, cancel := context.WithCancel(context.Background())
+	// Initialize prometheus metrics and expose on port 20221
+	metrics.Init(cancel)
+
 	topic := "crypto.price.updated"
 	// Lookup necessary environment variables
 	// Example: "localhost:9091"
@@ -154,7 +162,7 @@ func main() {
 	if !didFind { 
 		panic("No MongoDB URL provided")
 	}
-	fmt.Printf("STARTUP: Tracking [%s] prices every 5s", cryptoId)
+	log.Printf("STARTUP: Tracking [%s] prices every 5s", cryptoId)
 	// Connect to MongoDB 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -169,54 +177,59 @@ func main() {
 		panic(err)
 	}
 	defer p.Close()
-	// Every 1 minute get crypto price
-	messageCount := 0
+	// Every few seconds get crypto price
 	for { 
-		// fmt.Println("Checking price for " + cryptoId)
-		// Check crypto price from Coinbase
-		cryptoPrice := lookupNewCryptoPrice(cryptoId)
-		fmt.Printf("Fetched new crypto price: %f\n", cryptoPrice)
-		if cryptoPrice == -1 { 
-			fmt.Printf(fmt.Sprintf("Not updating crypto price for %f because of failed API lookup", cryptoPrice))
-			// Sleep then restart loop
-			time.Sleep(5*time.Second)
-			continue
-		}
+		select {
+        case <-mainCtx.Done():
+            log.Println("Shutting down Kafka consumer...")
+            return
+        default:
+			// log.Println("Checking price for " + cryptoId)
+			// Check crypto price from Coinbase
+			cryptoPrice := lookupNewCryptoPrice(cryptoId)
+			log.Printf("Fetched new crypto price: %f\n", cryptoPrice)
+			if cryptoPrice == -1 { 
+				metrics.FailedCryptoPriceLookupCounter.WithLabelValues(cryptoId).Inc()
+				log.Printf(fmt.Sprintf("Not updating crypto price for %f because of failed API lookup", cryptoPrice))
+				// Sleep then restart loop
+				time.Sleep(5*time.Second)
+				continue
+			}
 
-		// Lookup previous price from DB
-		_, err := lookupOldCryptoPrice(cryptoId, client)
-		// err != nil means we are tracking the crypto for the first time!
-		if err != nil { 
-			fmt.Println("Creating new `prices` document for " + cryptoId)
-			createNewPrice := CryptoPriceDB{
-				Name: cryptoId,
-				Price: cryptoPrice,
+			// Lookup previous price from DB
+			_, err := lookupOldCryptoPrice(cryptoId, client)
+			// err != nil means we are tracking the crypto for the first time!
+			if err != nil { 
+				log.Println("Creating new `prices` document for " + cryptoId)
+				createNewPrice := CryptoPriceDB{
+					Name: cryptoId,
+					Price: cryptoPrice,
+				}
+				insertCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				// Insert record with current price
+				collection := client.Database("crypto").Collection("prices")
+				_, err = collection.InsertOne(insertCtx, &createNewPrice)
+				if err != nil {
+					log.Printf("Insert new `prices` document failed: %v\n", err)
+				}else { 
+					log.Printf("Created new crypto success for %s\n", cryptoId)
+				}
 			}
-			insertCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			// Insert record with current price
-			collection := client.Database("crypto").Collection("prices")
-			_, err = collection.InsertOne(insertCtx, &createNewPrice)
+			// Publish Message
+			err = p.Produce(&kafka.Message{
+				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+				Value:          []byte(fmt.Sprintf("%s:%f", cryptoId, cryptoPrice)),
+			}, nil)
 			if err != nil {
-				fmt.Printf("Insert new `prices` document failed: %v\n", err)
-			}else { 
-				fmt.Printf("Created new crypto success for %s\n", cryptoId)
+				log.Printf("Could not produce Kafka message: %v\n", err)
+			} else { 
+				metrics.MessagesProducedCounter.WithLabelValues(cryptoId).Inc()
 			}
+			// Wait for all messages to be delivered
+			p.Flush(1000)
+			// Sleep
+			time.Sleep(5*time.Second)
 		}
-		// Publish Message
-		err = p.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(fmt.Sprintf("%s:%f", cryptoId, cryptoPrice)),
-		}, nil)
-		if err != nil {
-			fmt.Printf("Could not produce Kafka message: %v\n", err)
-		} else { 
-			messageCount++
-		}
-		// Wait for all messages to be delivered
-		p.Flush(2000)
-		// Sleep
-		time.Sleep(5*time.Second)
 	}
-	fmt.Printf("Produced %d messages in microservice lifetime", messageCount)
 }
