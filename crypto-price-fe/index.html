@@ -29,6 +29,10 @@
             padding-right: 1ch;
             padding-bottom: 2ch;
         }
+
+        button, #prices { 
+            cursor: pointer;
+        }
     </style>
     <!-- Catppuccin theme -->
     <style>
@@ -98,55 +102,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet">
-    <!-- <style>
-        /* Style for monospace font */
-        .space-mono-regular {
-            font-family: "Space Mono", monospace;
-            font-weight: 400;
-            font-style: normal;
-        }
-
-        /* Style for box */
-        .box {
-            border: 1px solid black;
-            padding: 0 0.5rem 0 0.5rem;
-            border-radius: 5px;
-        }
-
-        /* Pad  */
-        .box>h3,
-        #duration {
-            padding-left: 1rem;
-        }
-    </style> -->
-    <!-- <style>
-        @layer base, utils, components;
-      </style>
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/@webtui/css@0.0.0/dist/base.css"
-      />
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/@webtui/css@0.0.0/dist/components/button.css"
-      /> -->
-
-    <!-- <style>
-        :root {
-        /* Default background color */
-        --background0: #2e3440;
-        /* Background levels 1-3 */
-        --background1: #3b4252;
-        --background2: #434c5e;
-        --background3: #4c566a;
-
-        /* Default foreground color */
-        --foreground0: #d8dee9;        
-        /* Foreground levels 1-2 */
-        --foreground1: #e5e9f0;
-        --foreground2: #eceff4;
-    }
-    </style> -->
+    <!-- WebTUI CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@webtui/css/dist/full.css" />
 </head>
 
@@ -173,7 +129,7 @@
             <article box-="square contain:!top" style="--box-border-color: var(--background3);">
                 <header is-="row" align-="between">
                     <div is-="badge" variant-="background0">
-                        <h1>Coin Prices (via Coinbase)</h1>
+                        <h1>Coin Prices</h1>
                     </div>
                 </header>
                 <ul id="prices">
@@ -250,7 +206,7 @@
             </header>
             <h2>Add New Asset</h2>
             <form id="assetForm" action="/assets" method="POST"
-                style="display: flex; padding: 1ch; justify-content: space-between;">
+                style="display: flex; padding: 1ch; justify-content: space-between; align-items: center;">
                 <div>
                     <label for="cryptoId">Crypto Name</label>
                     <input style="width: 6ch;" name="cryptoId" />
@@ -552,9 +508,10 @@
                             break
                         }
                     }
+                    const previousLabel = prev.filter(x => x['label']['formatter'] === label)
                     if (label == undefined) {
                         return prev;
-                    } else if (prev.filter(x => x['label']['formatter'] === label).length > 0) {
+                    } else if (previousLabel.length > 0 && new Date(previousLabel[0].xAxis).getDate() == curr.getDate()) {
                         return prev;
                     }
                     return [...prev, { xAxis: curr.getTime(), label: { formatter: label, position: 'middle' } }]
