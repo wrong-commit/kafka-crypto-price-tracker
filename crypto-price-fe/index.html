@@ -145,8 +145,8 @@
                 </header>
                 <div style="display: flex; flex: 1 0 auto; flex-wrap: wrap;" class="box-padding">
                     <div id="chart"></div>
-                    <div>
-                        <table border="1" cellpadding="10" cellspacing="0">
+                    <div style="flex-grow: 1;">
+                        <table style="width: 100%;" border="1" cellpadding="10" cellspacing="0">
                             <thead>
                                 <tr>
                                     <th>Time (AEST)</th>
@@ -467,6 +467,7 @@
                 item.time * 1000, // ECharts accepts ms timestamps
                 item.price
             ]);
+
             // Initiate chart, determine chart size, and format data
             const chart = echarts.init(document.getElementById('chart'));
 
