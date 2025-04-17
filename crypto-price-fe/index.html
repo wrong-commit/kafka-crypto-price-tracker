@@ -290,6 +290,8 @@
             document.getElementById("prices").addEventListener('click', e => {
                 changeCrypto(e.target.textContent.split(':')[0])
             })
+            // Sort based on crypto coin name
+            cryptoPrices.sort((a,b) => a['name'].localeCompare(b['name']))
             // Populate list of crypto names, current price, and change in duration
             for (const currentPrice of cryptoPrices) {
                 const duration = document.getElementById("duration").value;
