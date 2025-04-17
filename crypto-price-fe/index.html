@@ -511,11 +511,14 @@
                         }
                     }
                     const previousLabel = prev.filter(x => x['label']['formatter'] === label)
+                    // If label not defined do not add markline to chart
                     if (label == undefined) {
                         return prev;
-                    } else if (previousLabel.length > 0 && new Date(previousLabel[0].xAxis).getDate() == curr.getDate()) {
+                    // If label already exists for same date, do not add markline to chart
+                    } else if (previousLabel.length > 0 && new Date(previousLabel[previousLabel.length -1].xAxis).toLocaleDateString() === curr.toLocaleDateString()) {
                         return prev;
                     }
+                    // Add new markline to chart
                     return [...prev, { xAxis: curr.getTime(), label: { formatter: label, position: 'middle' } }]
                 }, [])
 
